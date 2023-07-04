@@ -4,152 +4,172 @@ use crate::piece::PieceType;
 use std::fmt::Display;
 
 pub struct Board {
-    position: [[Option<Piece>; 8]; 8],
+    position: [Option<Piece>; 64],
 }
 
 impl Default for Board {
     fn default() -> Self {
         let position = [
-            [
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Rook,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Knight,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Bishop,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Queen,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::King,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Bishop,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Knight,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Rook,
-                }),
-            ],
-            [
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::White,
-                    kind: PieceType::Pawn,
-                }),
-            ],
-            [None; 8],
-            [None; 8],
-            [None; 8],
-            [None; 8],
-            [
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Pawn,
-                }),
-            ],
-            [
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Rook,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Knight,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Bishop,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Queen,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::King,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Bishop,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Knight,
-                }),
-                Some(Piece {
-                    colour: Colour::Black,
-                    kind: PieceType::Rook,
-                }),
-            ],
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Rook,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Knight,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Bishop,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Queen,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::King,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Bishop,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Knight,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Rook,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::White,
+                kind: PieceType::Pawn,
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Pawn,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Rook,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Knight,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Bishop,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Queen,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::King,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Bishop,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Knight,
+            }),
+            Some(Piece {
+                colour: Colour::Black,
+                kind: PieceType::Rook,
+            }),
         ];
 
         Board { position }
@@ -158,9 +178,9 @@ impl Default for Board {
 
 impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in self.position.into_iter().rev() {
-            for col in row {
-                if let Some(piece) = col {
+        for row in (0..8).rev() {
+            for col in 0..8 {
+                if let Some(piece) = self.position[row * 8 + col] {
                     write!(f, " {piece} ")?;
                 } else {
                     write!(f, " - ")?;
@@ -168,7 +188,6 @@ impl Display for Board {
             }
             write!(f, "\n")?;
         }
-
         write!(f, "")
     }
 }
@@ -176,7 +195,7 @@ impl Display for Board {
 impl Board {
     pub fn move_coordinate(&mut self, ply: &str) {
         if ply.len() != 4 {
-            panic!("Expected ply of length 4, got {}", ply.len());
+            panic!("expected ply of length 4, got {}", ply.len());
         }
 
         let chars: Vec<char> = ply.chars().collect();
@@ -199,7 +218,7 @@ impl Board {
             'f' => 5,
             'g' => 6,
             'h' => 7,
-            _ => panic!("Unexpected column"),
+            _ => panic!("expected column from a to h, got {c}"),
         }
     }
 
@@ -214,8 +233,8 @@ impl Board {
     }
 
     fn move_piece(&mut self, src_row: usize, src_col: usize, dst_row: usize, dst_col: usize) {
-        let piece = self.position[src_row][src_col].clone();
-        self.position[src_row][src_col] = None;
-        self.position[dst_row][dst_col] = piece;
+        let piece = self.position[src_row * 8 + src_col].clone();
+        self.position[src_row * 8 + src_col] = None;
+        self.position[dst_row * 8 + dst_col] = piece;
     }
 }

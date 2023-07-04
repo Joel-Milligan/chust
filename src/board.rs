@@ -1,6 +1,4 @@
-use crate::piece::Colour;
-use crate::piece::Piece;
-use crate::piece::PieceType;
+use crate::piece::*;
 use std::fmt::Display;
 
 pub struct Board {
@@ -10,70 +8,22 @@ pub struct Board {
 impl Default for Board {
     fn default() -> Self {
         let position = [
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Rook,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Knight,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Bishop,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Queen,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::King,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Bishop,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Knight,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Rook,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::White,
-                kind: PieceType::Pawn,
-            }),
+            WHITE_ROOK,
+            WHITE_KNIGHT,
+            WHITE_BISHOP,
+            WHITE_QUEEN,
+            WHITE_KING,
+            WHITE_BISHOP,
+            WHITE_KNIGHT,
+            WHITE_ROOK,
+            WHITE_PAWN,
+            WHITE_PAWN,
+            WHITE_PAWN,
+            WHITE_PAWN,
+            WHITE_PAWN,
+            WHITE_PAWN,
+            WHITE_PAWN,
+            WHITE_PAWN,
             None,
             None,
             None,
@@ -106,70 +56,22 @@ impl Default for Board {
             None,
             None,
             None,
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Pawn,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Rook,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Knight,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Bishop,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Queen,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::King,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Bishop,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Knight,
-            }),
-            Some(Piece {
-                colour: Colour::Black,
-                kind: PieceType::Rook,
-            }),
+            BLACK_PAWN,
+            BLACK_PAWN,
+            BLACK_PAWN,
+            BLACK_PAWN,
+            BLACK_PAWN,
+            BLACK_PAWN,
+            BLACK_PAWN,
+            BLACK_PAWN,
+            BLACK_ROOK,
+            BLACK_KNIGHT,
+            BLACK_BISHOP,
+            BLACK_QUEEN,
+            BLACK_KING,
+            BLACK_BISHOP,
+            BLACK_KNIGHT,
+            BLACK_ROOK,
         ];
 
         Board { position }

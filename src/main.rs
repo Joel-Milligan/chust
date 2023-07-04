@@ -4,7 +4,8 @@ mod piece;
 use crate::board::Board;
 
 fn main() {
-    let mut board = Board::default();
-    board.move_coordinate("e2e4");
+    let mut board =
+        Board::from_fen("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    board.move_coordinate("d7d6");
     println!("{board}");
 }

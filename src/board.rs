@@ -120,7 +120,7 @@ impl Board {
             'f' => 5,
             'g' => 6,
             'h' => 7,
-            _ => panic!("expected column from a to h, got {c}"),
+            col => panic!("expected column from a to h, got {col}"),
         }
     }
 
@@ -138,5 +138,49 @@ impl Board {
         let piece = self.position[src_row * 8 + src_col].clone();
         self.position[src_row * 8 + src_col] = None;
         self.position[dst_row * 8 + dst_col] = piece;
+    }
+
+    pub fn from_fen(fen: &str) -> Self {
+        let fields: Vec<&str> = fen.split_whitespace().collect();
+        let mut position = [None; 64];
+
+        let mut idx = 0;
+        for ch in fields[0].split('/').rev().flat_map(|rank| rank.chars()) {
+            if ch.is_numeric() {
+                let empty_squares = ch.to_digit(10).unwrap();
+                for i in idx..(idx + empty_squares) {
+                    position[i as usize] = None;
+                }
+                idx += empty_squares;
+                continue;
+            }
+
+            let piece = match ch {
+                'r' => BLACK_ROOK,
+                'n' => BLACK_KNIGHT,
+                'b' => BLACK_BISHOP,
+                'q' => BLACK_QUEEN,
+                'k' => BLACK_KING,
+                'p' => BLACK_PAWN,
+                'R' => WHITE_ROOK,
+                'N' => WHITE_KNIGHT,
+                'B' => WHITE_BISHOP,
+                'Q' => WHITE_QUEEN,
+                'K' => WHITE_KING,
+                'P' => WHITE_PAWN,
+                ch => panic!("invalid character: {ch}"),
+            };
+
+            position[idx as usize] = piece;
+            idx += 1;
+        }
+
+        // TODO: current turn
+        // TODO: castling availability
+        // TODO: en passant square
+        // TODO: halfmove clock
+        // TODO: fullmove clock
+
+        Board { position }
     }
 }

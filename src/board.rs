@@ -2,7 +2,21 @@ use crate::piece::*;
 use std::fmt::Display;
 
 pub struct Board {
-    position: [Option<Piece>; 64],
+    black_king: u64,
+    black_queens: u64,
+    black_rooks: u64,
+    black_bishops: u64,
+    black_knights: u64,
+    black_pawns: u64,
+
+    white_king: u64,
+    white_queens: u64,
+    white_rooks: u64,
+    white_bishops: u64,
+    white_knights: u64,
+    white_pawns: u64,
+
+    squares: [Option<Piece>; 64],
     turn: Colour,
 }
 
@@ -16,7 +30,7 @@ impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in (0..8).rev() {
             for col in 0..8 {
-                if let Some(piece) = self.position[row * 8 + col] {
+                if let Some(piece) = self.squares[row * 8 + col] {
                     write!(f, " {piece} ")?;
                 } else {
                     write!(f, " - ")?;
@@ -69,43 +83,94 @@ impl Board {
     }
 
     fn move_piece(&mut self, src_row: usize, src_col: usize, dst_row: usize, dst_col: usize) {
-        let piece = self.position[src_row * 8 + src_col].clone();
-        self.position[src_row * 8 + src_col] = None;
-        self.position[dst_row * 8 + dst_col] = piece;
+        let piece = self.squares[src_row * 8 + src_col].clone();
+        self.squares[src_row * 8 + src_col] = None;
+        self.squares[dst_row * 8 + dst_col] = piece;
     }
 
     pub fn from_fen(fen: &str) -> Self {
-        let fields: Vec<&str> = fen.split_whitespace().collect();
-        let mut position = [None; 64];
+        let mut squares = [None; 64];
 
+        let mut white_king = 0u64;
+        let mut white_queens = 0u64;
+        let mut white_rooks = 0u64;
+        let mut white_bishops = 0u64;
+        let mut white_knights = 0u64;
+        let mut white_pawns = 0u64;
+
+        let mut black_king = 0u64;
+        let mut black_queens = 0u64;
+        let mut black_rooks = 0u64;
+        let mut black_bishops = 0u64;
+        let mut black_knights = 0u64;
+        let mut black_pawns = 0u64;
+
+        let fields: Vec<&str> = fen.split_whitespace().collect();
         let mut idx = 0;
         for ch in fields[0].split('/').rev().flat_map(|rank| rank.chars()) {
             if ch.is_numeric() {
                 let empty_squares = ch.to_digit(10).unwrap();
                 for i in idx..(idx + empty_squares) {
-                    position[i as usize] = None;
+                    squares[i as usize] = None;
                 }
                 idx += empty_squares;
                 continue;
             }
 
             let piece = match ch {
-                'r' => BLACK_ROOK,
-                'n' => BLACK_KNIGHT,
-                'b' => BLACK_BISHOP,
-                'q' => BLACK_QUEEN,
-                'k' => BLACK_KING,
-                'p' => BLACK_PAWN,
-                'R' => WHITE_ROOK,
-                'N' => WHITE_KNIGHT,
-                'B' => WHITE_BISHOP,
-                'Q' => WHITE_QUEEN,
-                'K' => WHITE_KING,
-                'P' => WHITE_PAWN,
+                'K' => {
+                    white_king |= 1 << idx;
+                    WHITE_KING
+                }
+                'Q' => {
+                    white_queens |= 1 << idx;
+                    WHITE_QUEEN
+                }
+                'R' => {
+                    white_rooks |= 1 << idx;
+                    WHITE_ROOK
+                }
+                'B' => {
+                    white_bishops |= 1 << idx;
+                    WHITE_BISHOP
+                }
+                'N' => {
+                    white_knights |= 1 << idx;
+                    WHITE_KNIGHT
+                }
+                'P' => {
+                    white_pawns |= 1 << idx;
+                    WHITE_PAWN
+                }
+                'k' => {
+                    black_king |= 1 << idx;
+                    BLACK_KING
+                }
+                'q' => {
+                    black_queens |= 1 << idx;
+                    BLACK_QUEEN
+                }
+                'r' => {
+                    black_rooks |= 1 << idx;
+                    BLACK_ROOK
+                }
+                'b' => {
+                    black_bishops |= 1 << idx;
+                    BLACK_BISHOP
+                }
+                'n' => {
+                    black_knights |= 1 << idx;
+                    BLACK_KNIGHT
+                }
+                'p' => {
+                    black_pawns |= 1 << idx;
+                    BLACK_PAWN
+                }
                 ch => panic!("invalid character: {ch}"),
             };
 
-            position[idx as usize] = piece;
+            squares[idx as usize] = piece;
+
             idx += 1;
         }
 
@@ -120,6 +185,34 @@ impl Board {
         // TODO: halfmove clock
         // TODO: fullmove clock
 
-        Board { position, turn }
+        Board {
+            squares,
+            turn,
+            white_king,
+            white_queens,
+            white_rooks,
+            white_bishops,
+            white_knights,
+            white_pawns,
+            black_king,
+            black_queens,
+            black_rooks,
+            black_bishops,
+            black_knights,
+            black_pawns,
+        }
+    }
+
+    fn print_bitboard(bitboard: u64) {
+        for rank in (0..8).rev() {
+            print!("{} ", rank + 1);
+            for file in 0..8 {
+                let square = rank * 8 + file;
+                let occupied = bitboard & (1u64 << square) != 0;
+                print!(" {} ", if occupied { "o" } else { "." })
+            }
+            println!();
+        }
+        println!("   a  b  c  d  e  f  g  h");
     }
 }

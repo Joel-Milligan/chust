@@ -3,78 +3,12 @@ use std::fmt::Display;
 
 pub struct Board {
     position: [Option<Piece>; 64],
+    turn: Colour,
 }
 
 impl Default for Board {
     fn default() -> Self {
-        let position = [
-            WHITE_ROOK,
-            WHITE_KNIGHT,
-            WHITE_BISHOP,
-            WHITE_QUEEN,
-            WHITE_KING,
-            WHITE_BISHOP,
-            WHITE_KNIGHT,
-            WHITE_ROOK,
-            WHITE_PAWN,
-            WHITE_PAWN,
-            WHITE_PAWN,
-            WHITE_PAWN,
-            WHITE_PAWN,
-            WHITE_PAWN,
-            WHITE_PAWN,
-            WHITE_PAWN,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            BLACK_PAWN,
-            BLACK_PAWN,
-            BLACK_PAWN,
-            BLACK_PAWN,
-            BLACK_PAWN,
-            BLACK_PAWN,
-            BLACK_PAWN,
-            BLACK_PAWN,
-            BLACK_ROOK,
-            BLACK_KNIGHT,
-            BLACK_BISHOP,
-            BLACK_QUEEN,
-            BLACK_KING,
-            BLACK_BISHOP,
-            BLACK_KNIGHT,
-            BLACK_ROOK,
-        ];
-
-        Board { position }
+        Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     }
 }
 
@@ -175,12 +109,17 @@ impl Board {
             idx += 1;
         }
 
-        // TODO: current turn
+        let turn = match fields[1] {
+            "w" => Colour::White,
+            "b" => Colour::Black,
+            colour => panic!("unexpect colour: {colour}"),
+        };
+
         // TODO: castling availability
         // TODO: en passant square
         // TODO: halfmove clock
         // TODO: fullmove clock
 
-        Board { position }
+        Board { position, turn }
     }
 }

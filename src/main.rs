@@ -1,6 +1,6 @@
 mod bitboards;
 mod board;
-mod piece;
+mod constants;
 mod piece_move;
 mod square;
 

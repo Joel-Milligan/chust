@@ -1,26 +1,14 @@
 use crate::bitboards;
-use crate::piece::*;
+use crate::constants::*;
 use crate::piece_move::Move;
 use crate::square::Square;
+
 use std::fmt::Display;
 
 pub struct Board {
-    black_king: u64,
-    black_queens: u64,
-    black_rooks: u64,
-    black_bishops: u64,
-    black_knights: u64,
-    black_pawns: u64,
-
-    white_king: u64,
-    white_queens: u64,
-    white_rooks: u64,
-    white_bishops: u64,
-    white_knights: u64,
-    white_pawns: u64,
-
-    squares: [Option<Piece>; 64],
-    turn: Colour,
+    bitboards: [[u64; 6]; 2],
+    squares: [Option<(usize, usize)>; 64],
+    turn: usize,
 }
 
 impl Default for Board {
@@ -34,7 +22,21 @@ impl Display for Board {
         for row in (0..8).rev() {
             for col in 0..8 {
                 if let Some(piece) = self.squares[row * 8 + col] {
-                    write!(f, " {piece} ")?;
+                    let kind = match piece.1 {
+                        KING => "k",
+                        QUEEN => "q",
+                        ROOK => "r",
+                        BISHOP => "b",
+                        KNIGHT => "n",
+                        PAWN => "p",
+                        p => panic!("unexpected piece constant: {p}"),
+                    };
+
+                    if piece.0 == WHITE {
+                        write!(f, " {} ", kind.to_uppercase())?;
+                    } else {
+                        write!(f, " {} ", kind)?;
+                    }
                 } else {
                     write!(f, " - ")?;
                 }
@@ -93,20 +95,7 @@ impl Board {
 
     pub fn from_fen(fen: &str) -> Self {
         let mut squares = [None; 64];
-
-        let mut white_king = 0u64;
-        let mut white_queens = 0u64;
-        let mut white_rooks = 0u64;
-        let mut white_bishops = 0u64;
-        let mut white_knights = 0u64;
-        let mut white_pawns = 0u64;
-
-        let mut black_king = 0u64;
-        let mut black_queens = 0u64;
-        let mut black_rooks = 0u64;
-        let mut black_bishops = 0u64;
-        let mut black_knights = 0u64;
-        let mut black_pawns = 0u64;
+        let mut bitboards = [[0; 6]; 2];
 
         let fields: Vec<&str> = fen.split_whitespace().collect();
         let mut idx = 0;
@@ -120,66 +109,31 @@ impl Board {
                 continue;
             }
 
-            let piece = match ch {
-                'K' => {
-                    white_king |= 1 << idx;
-                    WHITE_KING
-                }
-                'Q' => {
-                    white_queens |= 1 << idx;
-                    WHITE_QUEEN
-                }
-                'R' => {
-                    white_rooks |= 1 << idx;
-                    WHITE_ROOK
-                }
-                'B' => {
-                    white_bishops |= 1 << idx;
-                    WHITE_BISHOP
-                }
-                'N' => {
-                    white_knights |= 1 << idx;
-                    WHITE_KNIGHT
-                }
-                'P' => {
-                    white_pawns |= 1 << idx;
-                    WHITE_PAWN
-                }
-                'k' => {
-                    black_king |= 1 << idx;
-                    BLACK_KING
-                }
-                'q' => {
-                    black_queens |= 1 << idx;
-                    BLACK_QUEEN
-                }
-                'r' => {
-                    black_rooks |= 1 << idx;
-                    BLACK_ROOK
-                }
-                'b' => {
-                    black_bishops |= 1 << idx;
-                    BLACK_BISHOP
-                }
-                'n' => {
-                    black_knights |= 1 << idx;
-                    BLACK_KNIGHT
-                }
-                'p' => {
-                    black_pawns |= 1 << idx;
-                    BLACK_PAWN
-                }
+            let (colour, piece) = match ch {
+                'K' => (WHITE, KING),
+                'Q' => (WHITE, QUEEN),
+                'R' => (WHITE, ROOK),
+                'B' => (WHITE, BISHOP),
+                'N' => (WHITE, KNIGHT),
+                'P' => (WHITE, PAWN),
+                'k' => (BLACK, KING),
+                'q' => (BLACK, QUEEN),
+                'r' => (BLACK, ROOK),
+                'b' => (BLACK, BISHOP),
+                'n' => (BLACK, KNIGHT),
+                'p' => (BLACK, PAWN),
                 ch => panic!("invalid character: {ch}"),
             };
 
-            squares[idx as usize] = piece;
+            bitboards[colour][piece] |= 1 << idx;
+            squares[idx as usize] = Some((colour, piece));
 
             idx += 1;
         }
 
         let turn = match fields[1] {
-            "w" => Colour::White,
-            "b" => Colour::Black,
+            "w" => WHITE,
+            "b" => BLACK,
             colour => panic!("unexpect colour: {colour}"),
         };
 
@@ -189,20 +143,9 @@ impl Board {
         // TODO: fullmove clock
 
         Board {
+            bitboards,
             squares,
             turn,
-            white_king,
-            white_queens,
-            white_rooks,
-            white_bishops,
-            white_knights,
-            white_pawns,
-            black_king,
-            black_queens,
-            black_rooks,
-            black_bishops,
-            black_knights,
-            black_pawns,
         }
     }
 
@@ -215,14 +158,14 @@ impl Board {
     }
 
     fn generate_pawn_moves(&self) -> Vec<Move> {
-        if self.turn == Colour::White {
-            bitboards::indicies(&self.white_pawns)
+        if self.turn == WHITE {
+            bitboards::indicies(&self.bitboards[WHITE][PAWN])
                 .into_iter()
                 .filter(|p| p <= &55)
                 .map(|p| Move(Square(p), Square(p + 8)))
                 .collect()
         } else {
-            bitboards::indicies(&self.black_pawns)
+            bitboards::indicies(&self.bitboards[BLACK][PAWN])
                 .into_iter()
                 .filter(|p| p >= &8)
                 .map(|p| Move(Square(p), Square(p - 8)))

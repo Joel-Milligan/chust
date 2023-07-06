@@ -1,11 +1,16 @@
+mod bitboards;
 mod board;
 mod piece;
+mod piece_move;
 
 use crate::board::Board;
 
 fn main() {
-    let mut board =
-        Board::from_fen("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
-    board.move_coordinate("d7d6");
+    let board = Board::from_fen("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
     println!("{board}");
+
+    println!("Available moves:");
+    for m in board.generate_moves() {
+        println!("{m}");
+    }
 }

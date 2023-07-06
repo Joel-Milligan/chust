@@ -1,4 +1,6 @@
+use crate::bitboards;
 use crate::piece::*;
+use crate::piece_move::Move;
 use std::fmt::Display;
 
 pub struct Board {
@@ -214,5 +216,31 @@ impl Board {
             println!();
         }
         println!("   a  b  c  d  e  f  g  h");
+    }
+
+    pub fn generate_moves(&self) -> Vec<Move> {
+        let mut moves = vec![];
+
+        moves.append(&mut self.generate_pawn_moves());
+
+        moves
+    }
+
+    fn generate_pawn_moves(&self) -> Vec<Move> {
+        let mut moves = vec![];
+
+        if self.turn == Colour::White {
+            let pawns = bitboards::indicies(&self.white_pawns);
+            for pawn in pawns.into_iter().filter(|p| p <= &55) {
+                moves.push(Move(pawn, pawn + 8));
+            }
+        } else {
+            let pawns = bitboards::indicies(&self.black_pawns);
+            for pawn in pawns.into_iter().filter(|p| p >= &8) {
+                moves.push(Move(pawn, pawn - 8));
+            }
+        }
+
+        moves
     }
 }

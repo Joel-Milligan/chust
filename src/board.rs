@@ -33,12 +33,12 @@ impl Display for Board {
                     };
 
                     if piece.0 == WHITE {
-                        write!(f, " {} ", kind.to_uppercase())?;
+                        write!(f, "{} ", kind.to_uppercase())?;
                     } else {
-                        write!(f, " {} ", kind)?;
+                        write!(f, "{} ", kind)?;
                     }
                 } else {
-                    write!(f, " - ")?;
+                    write!(f, ". ")?;
                 }
             }
             write!(f, "\n")?;

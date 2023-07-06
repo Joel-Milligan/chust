@@ -2,6 +2,7 @@ mod bitboards;
 mod board;
 mod piece;
 mod piece_move;
+mod square;
 
 use crate::board::Board;
 

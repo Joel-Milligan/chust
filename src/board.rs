@@ -1,6 +1,7 @@
 use crate::bitboards;
 use crate::piece::*;
 use crate::piece_move::Move;
+use crate::square::Square;
 use std::fmt::Display;
 
 pub struct Board {
@@ -205,19 +206,6 @@ impl Board {
         }
     }
 
-    fn print_bitboard(bitboard: u64) {
-        for rank in (0..8).rev() {
-            print!("{} ", rank + 1);
-            for file in 0..8 {
-                let square = rank * 8 + file;
-                let occupied = bitboard & (1u64 << square) != 0;
-                print!(" {} ", if occupied { "o" } else { "." })
-            }
-            println!();
-        }
-        println!("   a  b  c  d  e  f  g  h");
-    }
-
     pub fn generate_moves(&self) -> Vec<Move> {
         let mut moves = vec![];
 
@@ -227,20 +215,18 @@ impl Board {
     }
 
     fn generate_pawn_moves(&self) -> Vec<Move> {
-        let mut moves = vec![];
-
         if self.turn == Colour::White {
-            let pawns = bitboards::indicies(&self.white_pawns);
-            for pawn in pawns.into_iter().filter(|p| p <= &55) {
-                moves.push(Move(pawn, pawn + 8));
-            }
+            bitboards::indicies(&self.white_pawns)
+                .into_iter()
+                .filter(|p| p <= &55)
+                .map(|p| Move(Square(p), Square(p + 8)))
+                .collect()
         } else {
-            let pawns = bitboards::indicies(&self.black_pawns);
-            for pawn in pawns.into_iter().filter(|p| p >= &8) {
-                moves.push(Move(pawn, pawn - 8));
-            }
+            bitboards::indicies(&self.black_pawns)
+                .into_iter()
+                .filter(|p| p >= &8)
+                .map(|p| Move(Square(p), Square(p - 8)))
+                .collect()
         }
-
-        moves
     }
 }

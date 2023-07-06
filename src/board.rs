@@ -1,4 +1,5 @@
 use crate::bitboards;
+use crate::calculated::*;
 use crate::constants::*;
 use crate::piece_move::Move;
 use crate::square::Square;
@@ -153,23 +154,47 @@ impl Board {
         let mut moves = vec![];
 
         moves.append(&mut self.generate_pawn_moves());
+        moves.append(&mut self.generate_rook_moves());
+
+        moves
+    }
+
+    fn generate_rook_moves(&self) -> Vec<Move> {
+        let mut moves = vec![];
+        let rooks = self.bitboards[self.turn][ROOK];
+        let squares = bitboards::indicies(&rooks);
+
+        for src in squares {
+            let full_moves = bitboards::indicies(&ROOK_MOVES[src]);
+            // TODO: Check for blocking pieces
+            moves.append(
+                &mut full_moves
+                    .into_iter()
+                    .map(|dst| Move(Square(src), Square(dst)))
+                    .collect(),
+            );
+        }
 
         moves
     }
 
     fn generate_pawn_moves(&self) -> Vec<Move> {
-        if self.turn == WHITE {
-            bitboards::indicies(&self.bitboards[WHITE][PAWN])
-                .into_iter()
-                .filter(|p| p <= &55)
-                .map(|p| Move(Square(p), Square(p + 8)))
-                .collect()
-        } else {
-            bitboards::indicies(&self.bitboards[BLACK][PAWN])
-                .into_iter()
-                .filter(|p| p >= &8)
-                .map(|p| Move(Square(p), Square(p - 8)))
-                .collect()
-        }
+        bitboards::indicies(&self.bitboards[self.turn][PAWN])
+            .into_iter()
+            .filter(|p| {
+                if self.turn == WHITE {
+                    p <= &H7
+                } else {
+                    p >= &A2
+                }
+            })
+            .map(|p| {
+                if self.turn == WHITE {
+                    Move(Square(p), Square(p + 8))
+                } else {
+                    Move(Square(p), Square(p - 8))
+                }
+            })
+            .collect()
     }
 }

@@ -1,5 +1,8 @@
+#![feature(lazy_cell)]
+
 mod bitboards;
 mod board;
+mod calculated;
 mod constants;
 mod piece_move;
 mod square;

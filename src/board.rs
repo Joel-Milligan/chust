@@ -49,51 +49,6 @@ impl Display for Board {
 }
 
 impl Board {
-    pub fn move_coordinate(&mut self, ply: &str) {
-        if ply.len() != 4 {
-            panic!("expected ply of length 4, got {}", ply.len());
-        }
-
-        let chars: Vec<char> = ply.chars().collect();
-
-        let src_col = Board::get_column(&chars[0]);
-        let src_row = Board::get_row(&chars[1]);
-        let dst_col = Board::get_column(&chars[2]);
-        let dst_row = Board::get_row(&chars[3]);
-
-        self.move_piece(src_row, src_col, dst_row, dst_col);
-    }
-
-    fn get_column(c: &char) -> usize {
-        match c {
-            'a' => 0,
-            'b' => 1,
-            'c' => 2,
-            'd' => 3,
-            'e' => 4,
-            'f' => 5,
-            'g' => 6,
-            'h' => 7,
-            col => panic!("expected column from a to h, got {col}"),
-        }
-    }
-
-    fn get_row(c: &char) -> usize {
-        let row = (c.to_digit(10).unwrap() - 1) as usize;
-
-        if row > 7 {
-            panic!("expected row from 0 to 7, got {row}");
-        }
-
-        row
-    }
-
-    fn move_piece(&mut self, src_row: usize, src_col: usize, dst_row: usize, dst_col: usize) {
-        let piece = self.squares[src_row * 8 + src_col].clone();
-        self.squares[src_row * 8 + src_col] = None;
-        self.squares[dst_row * 8 + dst_col] = piece;
-    }
-
     pub fn from_fen(fen: &str) -> Self {
         let mut squares = [None; 64];
         let mut bitboards = [[0; 6]; 2];

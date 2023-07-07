@@ -53,26 +53,3 @@ pub static ROOK_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
 
     rook_moves
 });
-
-pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
-    let mut pawn_attacks = [[0; 64]; 2];
-
-    for side in WHITE..=BLACK {
-        for square in A2..=H7 {
-            let bitboard = 1 << square;
-            let mut attacks = 0;
-
-            if side == WHITE {
-                attacks |= (bitboard << 7) & !H_FILE;
-                attacks |= (bitboard << 9) & !A_FILE;
-            } else {
-                attacks |= (bitboard >> 7) & !A_FILE;
-                attacks |= (bitboard >> 9) & !H_FILE;
-            }
-
-            pawn_attacks[side][square] = attacks;
-        }
-    }
-
-    pawn_attacks
-});

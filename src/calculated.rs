@@ -55,28 +55,24 @@ pub static ROOK_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
 });
 
 pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
-    let mut attacks = [[0; 64]; 2];
+    let mut pawn_attacks = [[0; 64]; 2];
 
-    for side in 0..2 {
-        for square in 8..56 {
-            attacks[side][square] = mask_pawn_attacks(side, square);
+    for side in WHITE..=BLACK {
+        for square in A2..=H7 {
+            let bitboard = 1 << square;
+            let mut attacks = 0;
+
+            if side == WHITE {
+                attacks |= (bitboard << 7) & !H_FILE;
+                attacks |= (bitboard << 9) & !A_FILE;
+            } else {
+                attacks |= (bitboard >> 7) & !A_FILE;
+                attacks |= (bitboard >> 9) & !H_FILE;
+            }
+
+            pawn_attacks[side][square] = attacks;
         }
     }
 
-    attacks
+    pawn_attacks
 });
-
-fn mask_pawn_attacks(side: usize, square: usize) -> u64 {
-    let bitboard = 1 << square;
-    let mut attacks = 0u64;
-
-    if side == WHITE {
-        attacks |= (bitboard << 7) & !H_FILE;
-        attacks |= (bitboard << 9) & !A_FILE;
-    } else {
-        attacks |= (bitboard >> 7) & !A_FILE;
-        attacks |= (bitboard >> 9) & !H_FILE;
-    }
-
-    attacks
-}

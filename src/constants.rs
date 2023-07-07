@@ -10,6 +10,10 @@ pub const BISHOP: usize = 3;
 pub const KNIGHT: usize = 4;
 pub const PAWN: usize = 5;
 
+// Files
+pub const A_FILE: u64 = 0x0101010101010101;
+pub const H_FILE: u64 = 0x8080808080808080;
+
 // Squares
 pub const A1: usize = 0;
 pub const B1: usize = 1;

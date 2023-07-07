@@ -67,25 +67,15 @@ pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
 });
 
 fn mask_pawn_attacks(side: usize, square: usize) -> u64 {
+    let bitboard = 1 << square;
     let mut attacks = 0u64;
-    let mut bitboard = 0u64;
-
-    bitboard |= 1 << square;
 
     if side == WHITE {
-        if square % 8 != 0 {
-            attacks |= bitboard << 7;
-        }
-        if square % 8 != 7 {
-            attacks |= bitboard << 9;
-        }
+        attacks |= (bitboard << 7) & !H_FILE;
+        attacks |= (bitboard << 9) & !A_FILE;
     } else {
-        if square % 8 != 0 {
-            attacks |= bitboard >> 9;
-        }
-        if square % 8 != 7 {
-            attacks |= bitboard >> 7;
-        }
+        attacks |= (bitboard >> 7) & !A_FILE;
+        attacks |= (bitboard >> 9) & !H_FILE;
     }
 
     attacks

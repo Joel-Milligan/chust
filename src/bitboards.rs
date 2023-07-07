@@ -21,9 +21,9 @@ pub fn print_bitboard(bitboard: u64) {
         for file in 0..8 {
             let square = rank * 8 + file;
             let occupied = bitboard & (1u64 << square) != 0;
-            print!(" {} ", if occupied { "o" } else { "." })
+            print!("{} ", if occupied { "o" } else { "." })
         }
         println!();
     }
-    println!("   a  b  c  d  e  f  g  h");
+    println!("  a b c d e f g h");
 }

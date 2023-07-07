@@ -20,9 +20,10 @@ impl Default for Board {
 
 impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in (0..8).rev() {
-            for col in 0..8 {
-                if let Some(piece) = self.squares[row * 8 + col] {
+        for rank in (0..8).rev() {
+            write!(f, "{} ", rank + 1)?;
+            for file in 0..8 {
+                if let Some(piece) = self.squares[rank * 8 + file] {
                     let kind = match piece.1 {
                         KING => "k",
                         QUEEN => "q",
@@ -44,7 +45,7 @@ impl Display for Board {
             }
             write!(f, "\n")?;
         }
-        write!(f, "")
+        write!(f, "  a b c d e f g h")
     }
 }
 

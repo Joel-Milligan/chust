@@ -15,6 +15,11 @@ pub fn indicies(bitboard: &u64) -> Vec<usize> {
     indicies
 }
 
+/// Filter out certain squares from a bitboard
+pub fn filter(bitboard: &u64, filters: Vec<u64>) -> u64 {
+    bitboard & !(filters.into_iter().reduce(|acc, e| acc | e).unwrap())
+}
+
 pub fn print_bitboard(bitboard: u64) {
     for rank in (0..8).rev() {
         print!("{} ", rank + 1);

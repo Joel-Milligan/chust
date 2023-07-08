@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use crate::bitboards::filter;
 use crate::constants::*;
 
 pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
@@ -11,11 +12,11 @@ pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
             let mut attacks = 0;
 
             if side == WHITE {
-                attacks |= (bitboard << 7) & !H_FILE;
-                attacks |= (bitboard << 9) & !A_FILE;
+                attacks |= filter(&bitboard, vec![H_FILE]) << 9;
+                attacks |= filter(&bitboard, vec![A_FILE]) << 7;
             } else {
-                attacks |= (bitboard >> 7) & !A_FILE;
-                attacks |= (bitboard >> 9) & !H_FILE;
+                attacks |= filter(&bitboard, vec![H_FILE]) >> 7;
+                attacks |= filter(&bitboard, vec![A_FILE]) >> 9;
             }
 
             pawn_attacks[side][square] = attacks;

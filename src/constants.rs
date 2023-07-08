@@ -12,9 +12,19 @@ pub const PAWN: usize = 5;
 
 // Files
 pub const A_FILE: u64 = 0x0101010101010101;
+pub const B_FILE: u64 = 0x0202020202020202;
+pub const C_FILE: u64 = 0x0404040404040404;
+pub const F_FILE: u64 = 0x2020202020202020;
+pub const G_FILE: u64 = 0x4040404040404040;
 pub const H_FILE: u64 = 0x8080808080808080;
 
-// Squares
+// Ranks
+pub const FIRST_RANK: u64 = 0xff;
+pub const SECOND_RANK: u64 = 0xff00;
+pub const SEVENTH_RANK: u64 = 0xff000000000000;
+pub const EIGHTH_RANK: u64 = 0xff00000000000000;
+
+// Square Indexes
 pub const A1: usize = 0;
 pub const B1: usize = 1;
 pub const C1: usize = 2;

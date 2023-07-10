@@ -11,14 +11,14 @@ pub static KNIGHT_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
         let mut attacks = 0;
 
         // All knight moves starting from NNW going clockwise
-        attacks |= filter(&bitboard, vec![A_FILE, SEVENTH_RANK, EIGHTH_RANK]) << 15;
-        attacks |= filter(&bitboard, vec![H_FILE, SEVENTH_RANK, EIGHTH_RANK]) << 17;
-        attacks |= filter(&bitboard, vec![G_FILE, H_FILE, EIGHTH_RANK]) << 10;
-        attacks |= filter(&bitboard, vec![G_FILE, H_FILE, FIRST_RANK]) >> 6;
-        attacks |= filter(&bitboard, vec![H_FILE, FIRST_RANK, SECOND_RANK]) >> 15;
-        attacks |= filter(&bitboard, vec![A_FILE, FIRST_RANK, SECOND_RANK]) >> 17;
-        attacks |= filter(&bitboard, vec![A_FILE, B_FILE, FIRST_RANK]) >> 10;
-        attacks |= filter(&bitboard, vec![A_FILE, B_FILE, EIGHTH_RANK]) << 6;
+        attacks |= filter(bitboard, vec![A_FILE, SEVENTH_RANK, EIGHTH_RANK]) << 15;
+        attacks |= filter(bitboard, vec![H_FILE, SEVENTH_RANK, EIGHTH_RANK]) << 17;
+        attacks |= filter(bitboard, vec![G_FILE, H_FILE, EIGHTH_RANK]) << 10;
+        attacks |= filter(bitboard, vec![G_FILE, H_FILE, FIRST_RANK]) >> 6;
+        attacks |= filter(bitboard, vec![H_FILE, FIRST_RANK, SECOND_RANK]) >> 15;
+        attacks |= filter(bitboard, vec![A_FILE, FIRST_RANK, SECOND_RANK]) >> 17;
+        attacks |= filter(bitboard, vec![A_FILE, B_FILE, FIRST_RANK]) >> 10;
+        attacks |= filter(bitboard, vec![A_FILE, B_FILE, EIGHTH_RANK]) << 6;
 
         knight_moves[square] = attacks;
     }

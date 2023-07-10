@@ -11,14 +11,14 @@ pub static KING_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
         let mut moves = 0;
 
         // Start from NNW and go clockwise
-        moves |= filter(&bitboard, vec![A_FILE, EIGHTH_RANK]) << 7;
-        moves |= filter(&bitboard, vec![EIGHTH_RANK]) << 8;
-        moves |= filter(&bitboard, vec![H_FILE, EIGHTH_RANK]) << 9;
-        moves |= filter(&bitboard, vec![H_FILE]) << 1;
-        moves |= filter(&bitboard, vec![H_FILE, FIRST_RANK]) >> 7;
-        moves |= filter(&bitboard, vec![FIRST_RANK]) >> 8;
-        moves |= filter(&bitboard, vec![A_FILE, FIRST_RANK]) >> 9;
-        moves |= filter(&bitboard, vec![A_FILE]) >> 1;
+        moves |= filter(bitboard, vec![A_FILE, EIGHTH_RANK]) << 7;
+        moves |= filter(bitboard, vec![EIGHTH_RANK]) << 8;
+        moves |= filter(bitboard, vec![H_FILE, EIGHTH_RANK]) << 9;
+        moves |= filter(bitboard, vec![H_FILE]) << 1;
+        moves |= filter(bitboard, vec![H_FILE, FIRST_RANK]) >> 7;
+        moves |= filter(bitboard, vec![FIRST_RANK]) >> 8;
+        moves |= filter(bitboard, vec![A_FILE, FIRST_RANK]) >> 9;
+        moves |= filter(bitboard, vec![A_FILE]) >> 1;
 
         king_moves[square] = moves;
     }

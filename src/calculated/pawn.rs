@@ -12,11 +12,11 @@ pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
             let mut attacks = 0;
 
             if side == WHITE {
-                attacks |= filter(&bitboard, vec![H_FILE]) << 9;
-                attacks |= filter(&bitboard, vec![A_FILE]) << 7;
+                attacks |= filter(bitboard, vec![H_FILE]) << 9;
+                attacks |= filter(bitboard, vec![A_FILE]) << 7;
             } else {
-                attacks |= filter(&bitboard, vec![H_FILE]) >> 7;
-                attacks |= filter(&bitboard, vec![A_FILE]) >> 9;
+                attacks |= filter(bitboard, vec![H_FILE]) >> 7;
+                attacks |= filter(bitboard, vec![A_FILE]) >> 9;
             }
 
             pawn_attacks[side][square] = attacks;

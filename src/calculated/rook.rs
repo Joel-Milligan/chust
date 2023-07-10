@@ -2,6 +2,55 @@ use std::sync::LazyLock;
 
 use crate::constants::*;
 
+pub fn generate_rook_moves(square: usize, blockers: u64) -> u64 {
+    let mut moves = 0;
+
+    let rank = square / 8;
+    let file = square % 8;
+
+    // N
+    if rank < 7 {
+        for r in (rank + 1)..=7 {
+            moves |= 1 << (r * 8 + file);
+            if 1 << (r * 8 + file) & blockers != 0 {
+                break;
+            }
+        }
+    }
+
+    // E
+    if file < 7 {
+        for f in (file + 1)..=7 {
+            moves |= 1 << (rank * 8 + f);
+            if 1 << (rank * 8 + f) & blockers != 0 {
+                break;
+            }
+        }
+    }
+
+    // S
+    if rank > 0 {
+        for r in (0..=(rank - 1)).rev() {
+            moves |= 1 << (r * 8 + file);
+            if 1 << (r * 8 + file) & blockers != 0 {
+                break;
+            }
+        }
+    }
+
+    // W
+    if file > 0 {
+        for f in (0..=(file - 1)).rev() {
+            moves |= 1 << (rank * 8 + f);
+            if 1 << (rank * 8 + f) & blockers != 0 {
+                break;
+            }
+        }
+    }
+
+    moves
+}
+
 pub static ROOK_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
     let mut rook_moves = [0; 64];
 
@@ -50,23 +99,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn full_move_set() {
+    fn occupancy() {
         assert_eq!(ROOK_MOVES[E4], 0x1010106e101000);
-    }
-
-    #[test]
-    fn edges() {
         assert_eq!(ROOK_MOVES[E1], 0x1010101010106e);
         assert_eq!(ROOK_MOVES[D8], 0x7608080808080800);
         assert_eq!(ROOK_MOVES[A4], 0x101017e010100);
         assert_eq!(ROOK_MOVES[H5], 0x80807e80808000);
-    }
-
-    #[test]
-    fn corners() {
         assert_eq!(ROOK_MOVES[A1], 0x101010101017e);
         assert_eq!(ROOK_MOVES[H1], 0x8080808080807e);
         assert_eq!(ROOK_MOVES[A8], 0x7e01010101010100);
         assert_eq!(ROOK_MOVES[H8], 0x7e80808080808000);
+    }
+
+    #[test]
+    fn blockers() {
+        assert_eq!(generate_rook_moves(E4, 0x1082001000), 0x10ee101000)
     }
 }

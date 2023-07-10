@@ -52,9 +52,6 @@ mod tests {
     #[test]
     fn full_move_set() {
         assert_eq!(BISHOP_MOVES[E4], 0x2442800284400);
-        assert_eq!(BISHOP_MOVES[E4], 0x2442800284400);
-        assert_eq!(BISHOP_MOVES[E4], 0x2442800284400);
-        assert_eq!(BISHOP_MOVES[E4], 0x2442800284400);
     }
 
     #[test]

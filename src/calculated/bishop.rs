@@ -137,6 +137,11 @@ pub static BISHOP_OCCUPANCY: LazyLock<[u64; 64]> = LazyLock::new(|| {
     occupancy
 });
 
+pub static BISHOP_COUNT: [u64; 64] = [
+    6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5,
+    5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6,
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;

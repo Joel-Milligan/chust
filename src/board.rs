@@ -135,4 +135,54 @@ impl Board {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_board() {
+        let board = Board::default();
+
+        assert_eq!(board.squares[E2], Some((WHITE, PAWN)));
+        assert_eq!(board.squares[A8], Some((BLACK, ROOK)));
+        assert_eq!(board.squares[F6], None);
+
+        assert_eq!(board.bitboards[WHITE][PAWN], 0xff00);
+        assert_eq!(board.bitboards[BLACK][KING], 0x1000000000000000);
+    }
+
+    #[test]
+    fn simple_move() {
+        let mut board = Board::default();
+        board.apply_move(Move::coordinate("e2e4".to_string()));
+
+        assert_eq!(board.squares[E2], None);
+        assert_eq!(board.squares[E4], Some((WHITE, PAWN)));
+        assert_eq!(board.bitboards[WHITE][PAWN], 0x1000ef00);
+    }
+
+    #[test]
+    fn capture() {
+        let mut board =
+            Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+        board.apply_move(Move::coordinate("e4d5".to_string()));
+
+        assert_eq!(board.squares[E4], None);
+        assert_eq!(board.squares[D5], Some((WHITE, PAWN)));
+
+        assert_eq!(board.bitboards[WHITE][PAWN], 0x80000ef00);
+        assert_eq!(board.bitboards[BLACK][PAWN], 0xf7000000000000);
+    }
+
+    #[test]
+    fn castle() {}
+
+    #[test]
+    fn en_passant() {}
+
+    #[test]
+    fn promote() {}
+
+    #[test]
+    fn illegal_move() {}
 }

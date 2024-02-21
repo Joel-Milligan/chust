@@ -119,6 +119,7 @@ mod tests {
 
     #[test]
     fn blockers() {
-        assert_eq!(generate_rook_moves(E4, 0x1082001000), 0x10ee101000)
+        assert_eq!(generate_rook_moves(E4, 0x1082001000), 0x10ee101000);
+        assert_eq!(generate_rook_moves(A1, 0x102), 0x102)
     }
 }

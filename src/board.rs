@@ -104,12 +104,34 @@ impl Board {
     }
 
     pub fn apply_move(&mut self, m: Move) {
-        let piece = self.squares[m.source().0];
-        self.squares[m.source().0] = None;
-        self.squares[m.destination().0] = piece;
-
-        // TODO: Handle all possible moves
-        // TODO: Handle captures
         // TODO: Check if move is legal
+        // TODO: Castling
+        // TODO: En Passant
+        // TODO: Promotion
+
+        // Pieces
+        let source_piece = self.squares[m.source().0].unwrap();
+        let captured_piece = self.squares[m.destination().0];
+
+        // Squares
+        self.squares[m.source().0] = None;
+        self.squares[m.destination().0] = Some(source_piece);
+
+        // Bitboards
+        self.bitboards[source_piece.0][source_piece.1] ^=
+            1 << m.destination().0 | 1 << m.source().0;
+
+        if let Some(piece) = captured_piece {
+            self.bitboards[piece.0][piece.1] ^= 1 << m.destination().0;
+        };
+
+        // Turn
+        if self.turn == WHITE {
+            self.turn = BLACK;
+        } else {
+            self.turn = WHITE;
+        }
     }
+}
+
 }

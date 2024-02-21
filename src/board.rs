@@ -1,8 +1,5 @@
-use crate::bitboards;
-use crate::calculated::*;
 use crate::constants::*;
 use crate::piece_move::Move;
-use crate::square::Square;
 
 use std::fmt::Display;
 
@@ -104,5 +101,15 @@ impl Board {
             squares,
             turn,
         }
+    }
+
+    pub fn apply_move(&mut self, m: Move) {
+        let piece = self.squares[m.source().0];
+        self.squares[m.source().0] = None;
+        self.squares[m.destination().0] = piece;
+
+        // TODO: Handle all possible moves
+        // TODO: Handle captures
+        // TODO: Check if move is legal
     }
 }

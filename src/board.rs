@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 pub struct Board {
     bitboards: [[u64; 6]; 2],
+    /// Each square contains Option<(COLOUR, PIECE)>
     squares: [Option<(usize, usize)>; 64],
     turn: usize,
 }
@@ -88,7 +89,7 @@ impl Board {
         let turn = match fields[1] {
             "w" => WHITE,
             "b" => BLACK,
-            colour => panic!("unexpect colour: {colour}"),
+            colour => panic!("invalid colour: {colour}"),
         };
 
         // TODO: castling availability

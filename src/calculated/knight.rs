@@ -4,6 +4,7 @@ use crate::bitboards::filter;
 use crate::constants::*;
 
 pub static KNIGHT_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
+    // TODO: Filter out moves onto friendly pieces
     let mut knight_moves = [0; 64];
 
     for square in A1..=H8 {

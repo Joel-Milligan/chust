@@ -1,6 +1,7 @@
 use std::fmt::Display;
+use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Square(pub usize);
 
 impl Display for Square {
@@ -20,5 +21,47 @@ impl Display for Square {
         let rank = self.0 / 8 + 1;
 
         write!(f, "{file}{rank}")
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseSquareError;
+
+impl FromStr for Square {
+    type Err = ParseSquareError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // TODO: Better errors on validation
+        if s.len() != 2 {
+            return Err(ParseSquareError);
+        }
+
+        let mut chars = s.chars();
+
+        let file = match chars.next().unwrap() {
+            'a' => 0,
+            'b' => 1,
+            'c' => 2,
+            'd' => 3,
+            'e' => 4,
+            'f' => 5,
+            'g' => 6,
+            'h' => 7,
+            _ => return Err(ParseSquareError),
+        };
+
+        let rank = match chars.next().unwrap() {
+            '1' => 0,
+            '2' => 1,
+            '3' => 2,
+            '4' => 3,
+            '5' => 4,
+            '6' => 5,
+            '7' => 6,
+            '8' => 7,
+            _ => return Err(ParseSquareError),
+        };
+
+        Ok(Square(file + rank * 8))
     }
 }

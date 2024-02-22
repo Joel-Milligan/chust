@@ -1,7 +1,12 @@
+use bitvec::prelude::*;
+
+use crate::calculated::knight::KNIGHT_MOVES;
 use crate::constants::*;
 use crate::piece_move::Move;
+use crate::square::{ParseSquareError, Square};
 
 use std::fmt::Display;
+use std::str::FromStr;
 
 pub struct Board {
     bitboards: [[u64; 6]; 2],
@@ -104,26 +109,48 @@ impl Board {
         }
     }
 
-    pub fn apply_move(&mut self, m: Move) {
+    pub fn get_legal_moves(&self, square: String) -> Result<Vec<Move>, ParseSquareError> {
+        // TODO: Validate input
+        let square = Square::from_str(&square)?;
+
+        if let Some(piece) = self.squares[square.0] {
+            let moves = match piece.1 {
+                KNIGHT => KNIGHT_MOVES[square.0].view_bits::<Lsb0>(),
+                _ => panic!(),
+            };
+
+            return Ok(moves
+                .into_iter()
+                .enumerate()
+                .filter(|(_, m)| **m)
+                .map(|s| Move(Square(square.0), Square(s.0)))
+                .collect());
+        }
+
+        // TODO: Return error, empty array, or none?
+        Ok(vec![])
+    }
+
+    pub fn apply_move(&mut self, mv: Move) {
         // TODO: Check if move is legal
         // TODO: Castling
         // TODO: En Passant
         // TODO: Promotion
 
         // Pieces
-        let source_piece = self.squares[m.source().0].unwrap();
-        let captured_piece = self.squares[m.destination().0];
+        let source_piece = self.squares[mv.source().0].unwrap();
+        let captured_piece = self.squares[mv.destination().0];
 
         // Squares
-        self.squares[m.source().0] = None;
-        self.squares[m.destination().0] = Some(source_piece);
+        self.squares[mv.source().0] = None;
+        self.squares[mv.destination().0] = Some(source_piece);
 
         // Bitboards
         self.bitboards[source_piece.0][source_piece.1] ^=
-            1 << m.destination().0 | 1 << m.source().0;
+            1 << mv.destination().0 | 1 << mv.source().0;
 
         if let Some(piece) = captured_piece {
-            self.bitboards[piece.0][piece.1] ^= 1 << m.destination().0;
+            self.bitboards[piece.0][piece.1] ^= 1 << mv.destination().0;
         };
 
         // Turn
@@ -185,4 +212,13 @@ mod tests {
 
     #[test]
     fn illegal_move() {}
+
+    #[test]
+    fn legal_knight_moves() {
+        let board = Board::from_fen("8/8/8/8/8/8/8/N7 w - - 0 1");
+        let moves = board.get_legal_moves("a1".to_string()).unwrap();
+
+        assert!(moves.contains(&Move(Square(A1), Square(B3))));
+        assert!(moves.contains(&Move(Square(A1), Square(C2))));
+    }
 }

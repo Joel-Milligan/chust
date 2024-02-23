@@ -2,6 +2,7 @@ use bitvec::prelude::*;
 
 use crate::calculated::king::KING_MOVES;
 use crate::calculated::knight::KNIGHT_MOVES;
+use crate::calculated::pawn::{PAWN_ATTACKS, PAWN_MOVES};
 use crate::constants::*;
 use crate::piece_move::Move;
 use crate::square::Square;
@@ -110,21 +111,30 @@ impl Board {
     }
 
     pub fn get_legal_moves(&self, square: Square) -> Vec<Move> {
-        let piece = match self.squares[square.0] {
+        let square = square.0;
+        let (colour, piece) = match self.squares[square] {
             Some(p) => p,
             None => return vec![],
         };
 
-        let moves = match piece.1 {
-            KING => KING_MOVES[square.0],
-            KNIGHT => KNIGHT_MOVES[square.0],
-            _ => unimplemented!("Moves not implemented for chosen piece"),
-        };
-
-        let friendly = self.bitboards[piece.0]
+        let friendly = self.bitboards[colour]
             .into_iter()
             .reduce(|acc, e| acc | e)
             .unwrap();
+
+        let opponent_colour = if colour == WHITE { BLACK } else { WHITE };
+
+        let opponent_pieces = self.bitboards[opponent_colour]
+            .into_iter()
+            .reduce(|acc, e| acc | e)
+            .unwrap();
+
+        let moves = match piece {
+            KING => KING_MOVES[square],
+            KNIGHT => KNIGHT_MOVES[square],
+            PAWN => (PAWN_ATTACKS[colour][square] & opponent_pieces) | PAWN_MOVES[colour][square],
+            _ => unimplemented!("Moves not implemented for chosen piece"),
+        };
 
         let moves = moves & !friendly;
         let moves = moves.view_bits::<Lsb0>();
@@ -133,7 +143,7 @@ impl Board {
             .into_iter()
             .enumerate()
             .filter(|(_, m)| **m)
-            .map(|s| Move(Square(square.0), Square(s.0)))
+            .map(|s| Move(Square(square), Square(s.0)))
             .collect()
     }
 
@@ -225,11 +235,13 @@ mod tests {
         let moves = board.get_legal_moves(Square(A1));
         assert!(moves.contains(&Move(Square(A1), Square(B3))));
         assert!(moves.contains(&Move(Square(A1), Square(C2))));
+        assert_eq!(moves.len(), 2);
 
         let board = Board::default();
         let moves = board.get_legal_moves(Square(B1));
         assert!(moves.contains(&Move(Square(B1), Square(A3))));
         assert!(moves.contains(&Move(Square(B1), Square(C3))));
+        assert_eq!(moves.len(), 2);
 
         let board = Board::from_fen("8/8/2K1K3/1K3K2/3N4/1K3K2/2K1K3/8 w - - 0 1");
         let moves = board.get_legal_moves(Square(D4));
@@ -243,9 +255,64 @@ mod tests {
         assert!(moves.contains(&Move(Square(A1), Square(B1))));
         assert!(moves.contains(&Move(Square(A1), Square(A2))));
         assert!(moves.contains(&Move(Square(A1), Square(B2))));
+        assert_eq!(moves.len(), 3);
 
         let board = Board::default();
         let moves = board.get_legal_moves(Square(E1));
         assert!(moves.is_empty());
+
+        // TODO: Castling
+    }
+
+    #[test]
+    fn legal_white_pawn_moves() {
+        // Starting square
+        let board = Board::default();
+        let moves = board.get_legal_moves(Square(E2));
+        assert!(moves.contains(&Move(Square(E2), Square(E3))));
+        assert!(moves.contains(&Move(Square(E2), Square(E4))));
+        assert_eq!(moves.len(), 2);
+
+        // Normal move
+        let board = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/3P4/PPP1PPPP/RNBQKBNR b KQkq - 0 1");
+        let moves = board.get_legal_moves(Square(D3));
+        assert!(moves.contains(&Move(Square(D3), Square(D4))));
+        assert_eq!(moves.len(), 1);
+
+        // Attack
+        let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+        let moves = board.get_legal_moves(Square(E4));
+        assert!(moves.contains(&Move(Square(E4), Square(E5))));
+        assert!(moves.contains(&Move(Square(E4), Square(D5))));
+        assert_eq!(moves.len(), 2);
+
+        // TODO: En passant
+        // TODO: Promotion
+    }
+
+    #[test]
+    fn legal_black_pawn_moves() {
+        // Starting square
+        let board = Board::default();
+        let moves = board.get_legal_moves(Square(E7));
+        assert!(moves.contains(&Move(Square(E7), Square(E5))));
+        assert!(moves.contains(&Move(Square(E7), Square(E6))));
+        assert_eq!(moves.len(), 2);
+
+        // Normal move
+        let board = Board::from_fen("rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+        let moves = board.get_legal_moves(Square(E6));
+        assert!(moves.contains(&Move(Square(E6), Square(E5))));
+        assert_eq!(moves.len(), 1);
+
+        // Attack
+        let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+        let moves = board.get_legal_moves(Square(D5));
+        assert!(moves.contains(&Move(Square(D5), Square(D4))));
+        assert!(moves.contains(&Move(Square(D5), Square(E4))));
+        assert_eq!(moves.len(), 2);
+
+        // TODO: En passant
+        // TODO: Promotion
     }
 }

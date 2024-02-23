@@ -1,12 +1,12 @@
 use bitvec::prelude::*;
 
+use crate::calculated::king::KING_MOVES;
 use crate::calculated::knight::KNIGHT_MOVES;
 use crate::constants::*;
 use crate::piece_move::Move;
-use crate::square::{ParseSquareError, Square};
+use crate::square::Square;
 
 use std::fmt::Display;
-use std::str::FromStr;
 
 pub struct Board {
     bitboards: [[u64; 6]; 2],
@@ -109,26 +109,32 @@ impl Board {
         }
     }
 
-    pub fn get_legal_moves(&self, square: String) -> Result<Vec<Move>, ParseSquareError> {
-        // TODO: Validate input
-        let square = Square::from_str(&square)?;
+    pub fn get_legal_moves(&self, square: Square) -> Vec<Move> {
+        let piece = match self.squares[square.0] {
+            Some(p) => p,
+            None => return vec![],
+        };
 
-        if let Some(piece) = self.squares[square.0] {
-            let moves = match piece.1 {
-                KNIGHT => KNIGHT_MOVES[square.0].view_bits::<Lsb0>(),
-                _ => panic!(),
-            };
+        let moves = match piece.1 {
+            KING => KING_MOVES[square.0],
+            KNIGHT => KNIGHT_MOVES[square.0],
+            _ => unimplemented!("Moves not implemented for chosen piece"),
+        };
 
-            return Ok(moves
-                .into_iter()
-                .enumerate()
-                .filter(|(_, m)| **m)
-                .map(|s| Move(Square(square.0), Square(s.0)))
-                .collect());
-        }
+        let friendly = self.bitboards[piece.0]
+            .into_iter()
+            .reduce(|acc, e| acc | e)
+            .unwrap();
 
-        // TODO: Return error, empty array, or none?
-        Ok(vec![])
+        let moves = moves & !friendly;
+        let moves = moves.view_bits::<Lsb0>();
+
+        moves
+            .into_iter()
+            .enumerate()
+            .filter(|(_, m)| **m)
+            .map(|s| Move(Square(square.0), Square(s.0)))
+            .collect()
     }
 
     pub fn apply_move(&mut self, mv: Move) {
@@ -216,9 +222,30 @@ mod tests {
     #[test]
     fn legal_knight_moves() {
         let board = Board::from_fen("8/8/8/8/8/8/8/N7 w - - 0 1");
-        let moves = board.get_legal_moves("a1".to_string()).unwrap();
-
+        let moves = board.get_legal_moves(Square(A1));
         assert!(moves.contains(&Move(Square(A1), Square(B3))));
         assert!(moves.contains(&Move(Square(A1), Square(C2))));
+
+        let board = Board::default();
+        let moves = board.get_legal_moves(Square(B1));
+        assert!(moves.contains(&Move(Square(B1), Square(A3))));
+        assert!(moves.contains(&Move(Square(B1), Square(C3))));
+
+        let board = Board::from_fen("8/8/2K1K3/1K3K2/3N4/1K3K2/2K1K3/8 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D4));
+        assert!(moves.is_empty());
+    }
+
+    #[test]
+    fn legal_king_moves() {
+        let board = Board::from_fen("8/8/8/8/8/8/8/K7 w - - 0 1");
+        let moves = board.get_legal_moves(Square(A1));
+        assert!(moves.contains(&Move(Square(A1), Square(B1))));
+        assert!(moves.contains(&Move(Square(A1), Square(A2))));
+        assert!(moves.contains(&Move(Square(A1), Square(B2))));
+
+        let board = Board::default();
+        let moves = board.get_legal_moves(Square(E1));
+        assert!(moves.is_empty());
     }
 }

@@ -1,8 +1,10 @@
 use bitvec::prelude::*;
 
+use crate::calculated::bishop::generate_bishop_moves;
 use crate::calculated::king::KING_MOVES;
 use crate::calculated::knight::KNIGHT_MOVES;
 use crate::calculated::pawn::{PAWN_ATTACKS, PAWN_MOVES};
+use crate::calculated::rook::generate_rook_moves;
 use crate::constants::*;
 use crate::piece_move::Move;
 use crate::square::Square;
@@ -117,26 +119,32 @@ impl Board {
             None => return vec![],
         };
 
-        let friendly = self.bitboards[colour]
+        let friendly_pieces = self.bitboards[colour]
             .into_iter()
             .reduce(|acc, e| acc | e)
             .unwrap();
 
         let opponent_colour = if colour == WHITE { BLACK } else { WHITE };
-
         let opponent_pieces = self.bitboards[opponent_colour]
             .into_iter()
             .reduce(|acc, e| acc | e)
             .unwrap();
 
+        let blockers = friendly_pieces | opponent_pieces;
+
         let moves = match piece {
+            BISHOP => generate_bishop_moves(square, blockers),
             KING => KING_MOVES[square],
             KNIGHT => KNIGHT_MOVES[square],
             PAWN => (PAWN_ATTACKS[colour][square] & opponent_pieces) | PAWN_MOVES[colour][square],
-            _ => unimplemented!("Moves not implemented for chosen piece"),
+            QUEEN => {
+                generate_rook_moves(square, blockers) | generate_bishop_moves(square, blockers)
+            }
+            ROOK => generate_rook_moves(square, blockers),
+            _ => panic!("Unknown piece"),
         };
 
-        let moves = moves & !friendly;
+        let moves = moves & !friendly_pieces;
         let moves = moves.view_bits::<Lsb0>();
 
         moves
@@ -314,5 +322,53 @@ mod tests {
 
         // TODO: En passant
         // TODO: Promotion
+    }
+
+    #[test]
+    fn legal_rook_moves() {
+        let board = Board::default();
+        let moves = board.get_legal_moves(Square(A1));
+        assert!(moves.is_empty());
+
+        let board = Board::from_fen("8/3r4/8/8/3R3q/8/3B4/8 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D4));
+        assert!(moves.contains(&Move(Square(D4), Square(D7))));
+        assert!(moves.contains(&Move(Square(D4), Square(H4))));
+        assert!(moves.contains(&Move(Square(D4), Square(D3))));
+        assert!(moves.contains(&Move(Square(D4), Square(A4))));
+        assert_eq!(moves.len(), 11);
+    }
+
+    #[test]
+    fn legal_bishop_moves() {
+        let board = Board::default();
+        let moves = board.get_legal_moves(Square(C1));
+        assert!(moves.is_empty());
+
+        let board = Board::from_fen("8/6n1/1Q6/8/3B4/8/1r6/8 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D4));
+        assert!(moves.contains(&Move(Square(D4), Square(C5))));
+        assert!(moves.contains(&Move(Square(D4), Square(B2))));
+        assert!(moves.contains(&Move(Square(D4), Square(G1))));
+        assert!(moves.contains(&Move(Square(D4), Square(G7))));
+        assert_eq!(moves.len(), 9);
+    }
+
+    #[test]
+    fn legal_queen_moves() {
+        let board = Board::default();
+        let moves = board.get_legal_moves(Square(D1));
+        assert!(moves.is_empty());
+
+        let board = Board::from_fen("8/6n1/1R6/3K4/3Q2p1/8/1r6/8 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D4));
+        assert!(moves.contains(&Move(Square(D4), Square(A4))));
+        assert!(moves.contains(&Move(Square(D4), Square(C5))));
+        assert!(moves.contains(&Move(Square(D4), Square(B2))));
+        assert!(moves.contains(&Move(Square(D4), Square(D1))));
+        assert!(moves.contains(&Move(Square(D4), Square(G1))));
+        assert!(moves.contains(&Move(Square(D4), Square(G4))));
+        assert!(moves.contains(&Move(Square(D4), Square(G7))));
+        assert_eq!(moves.len(), 18);
     }
 }

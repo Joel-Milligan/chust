@@ -18,3 +18,4 @@ Chess in rust
 - Algebraic notation
 - PGN
 - Error handling and validation
+- Clean up warning suppression

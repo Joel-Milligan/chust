@@ -113,8 +113,8 @@ impl Board {
     }
 
     pub fn get_legal_moves(&self, square: Square) -> Vec<Move> {
-        let square = square.0;
-        let (colour, piece) = match self.squares[square] {
+        let source = square.0;
+        let (colour, piece) = match self.squares[source] {
             Some(p) => p,
             None => return vec![],
         };
@@ -132,26 +132,50 @@ impl Board {
 
         let blockers = friendly_pieces | opponent_pieces;
 
+        let bishop_moves = generate_bishop_moves(source, blockers);
+        let rook_moves = generate_rook_moves(source, blockers);
+
         let moves = match piece {
-            BISHOP => generate_bishop_moves(square, blockers),
-            KING => KING_MOVES[square],
-            KNIGHT => KNIGHT_MOVES[square],
-            PAWN => (PAWN_ATTACKS[colour][square] & opponent_pieces) | PAWN_MOVES[colour][square],
-            QUEEN => {
-                generate_rook_moves(square, blockers) | generate_bishop_moves(square, blockers)
+            BISHOP => bishop_moves,
+            KING => KING_MOVES[source],
+            KNIGHT => KNIGHT_MOVES[source],
+            PAWN => {
+                (PAWN_ATTACKS[colour][source] & opponent_pieces)
+                    | (PAWN_MOVES[colour][source] & !opponent_pieces)
             }
-            ROOK => generate_rook_moves(square, blockers),
+            QUEEN => bishop_moves | rook_moves,
+            ROOK => rook_moves,
             _ => panic!("Unknown piece"),
         };
 
         let moves = moves & !friendly_pieces;
         let moves = moves.view_bits::<Lsb0>();
 
+        // Generate promotions
+        if piece == PAWN
+            && ((colour == WHITE && (A7..H7).contains(&source))
+                || (colour == BLACK && (A2..H2).contains(&source)))
+        {
+            return moves
+                .into_iter()
+                .enumerate()
+                .filter(|(_, m)| **m)
+                .flat_map(|destination| {
+                    vec![
+                        Move::promotion(source, destination.0, BISHOP),
+                        Move::promotion(source, destination.0, KNIGHT),
+                        Move::promotion(source, destination.0, QUEEN),
+                        Move::promotion(source, destination.0, ROOK),
+                    ]
+                })
+                .collect();
+        }
+
         moves
             .into_iter()
             .enumerate()
             .filter(|(_, m)| **m)
-            .map(|s| Move(Square(square), Square(s.0)))
+            .map(|destination| Move::new(source, destination.0))
             .collect()
     }
 
@@ -162,19 +186,28 @@ impl Board {
         // TODO: Promotion
 
         // Pieces
-        let source_piece = self.squares[mv.source().0].unwrap();
-        let captured_piece = self.squares[mv.destination().0];
+        let (colour, piece) = self.squares[mv.source.0].unwrap();
+        let captured_piece = self.squares[mv.destination.0];
 
         // Squares
-        self.squares[mv.source().0] = None;
-        self.squares[mv.destination().0] = Some(source_piece);
+        self.squares[mv.source.0] = None;
+
+        if let Some(promotion) = mv.promotion {
+            self.squares[mv.destination.0] = Some((colour, promotion));
+        } else {
+            self.squares[mv.destination.0] = Some((colour, piece));
+        }
 
         // Bitboards
-        self.bitboards[source_piece.0][source_piece.1] ^=
-            1 << mv.destination().0 | 1 << mv.source().0;
+        if let Some(promotion) = mv.promotion {
+            self.bitboards[colour][piece] ^= 1 << mv.source.0;
+            self.bitboards[colour][promotion] ^= 1 << mv.destination.0;
+        } else {
+            self.bitboards[colour][piece] ^= 1 << mv.destination.0 | 1 << mv.source.0;
+        }
 
         if let Some(piece) = captured_piece {
-            self.bitboards[piece.0][piece.1] ^= 1 << mv.destination().0;
+            self.bitboards[piece.0][piece.1] ^= 1 << mv.destination.0;
         };
 
         // Turn
@@ -205,7 +238,7 @@ mod tests {
     #[test]
     fn simple_move() {
         let mut board = Board::default();
-        board.apply_move(Move::coordinate("e2e4".to_string()));
+        board.apply_move(Move::coordinate("e2e4"));
 
         assert_eq!(board.squares[E2], None);
         assert_eq!(board.squares[E4], Some((WHITE, PAWN)));
@@ -216,7 +249,7 @@ mod tests {
     fn capture() {
         let mut board =
             Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
-        board.apply_move(Move::coordinate("e4d5".to_string()));
+        board.apply_move(Move::coordinate("e4d5"));
 
         assert_eq!(board.squares[E4], None);
         assert_eq!(board.squares[D5], Some((WHITE, PAWN)));
@@ -226,29 +259,45 @@ mod tests {
     }
 
     #[test]
+    fn promote() {
+        let mut board = Board::from_fen("8/3P4/8/8/8/8/8/8 w - - 0 1");
+        board.apply_move(Move::coordinate("d7d8q"));
+
+        assert_eq!(board.squares[D7], None);
+        assert_eq!(board.squares[D8], Some((WHITE, QUEEN)));
+
+        assert_eq!(board.bitboards[WHITE][PAWN], 0x0);
+        assert_eq!(board.bitboards[WHITE][QUEEN], 0x800000000000000);
+
+        let mut board = Board::from_fen("3q4/4P3/8/8/8/8/8/8 w - - 0 1");
+        board.apply_move(Move::coordinate("e7d8n"));
+
+        assert_eq!(board.squares[E7], None);
+        assert_eq!(board.squares[D8], Some((WHITE, KNIGHT)));
+
+        assert_eq!(board.bitboards[WHITE][PAWN], 0x0);
+        assert_eq!(board.bitboards[WHITE][KNIGHT], 0x800000000000000);
+        assert_eq!(board.bitboards[BLACK][QUEEN], 0x0);
+    }
+
+    #[test]
     fn castle() {}
 
     #[test]
     fn en_passant() {}
 
     #[test]
-    fn promote() {}
-
-    #[test]
-    fn illegal_move() {}
-
-    #[test]
     fn legal_knight_moves() {
         let board = Board::from_fen("8/8/8/8/8/8/8/N7 w - - 0 1");
         let moves = board.get_legal_moves(Square(A1));
-        assert!(moves.contains(&Move(Square(A1), Square(B3))));
-        assert!(moves.contains(&Move(Square(A1), Square(C2))));
+        assert!(moves.contains(&Move::new(A1, B3)));
+        assert!(moves.contains(&Move::new(A1, C2)));
         assert_eq!(moves.len(), 2);
 
         let board = Board::default();
         let moves = board.get_legal_moves(Square(B1));
-        assert!(moves.contains(&Move(Square(B1), Square(A3))));
-        assert!(moves.contains(&Move(Square(B1), Square(C3))));
+        assert!(moves.contains(&Move::new(B1, A3)));
+        assert!(moves.contains(&Move::new(B1, C3)));
         assert_eq!(moves.len(), 2);
 
         let board = Board::from_fen("8/8/2K1K3/1K3K2/3N4/1K3K2/2K1K3/8 w - - 0 1");
@@ -260,9 +309,9 @@ mod tests {
     fn legal_king_moves() {
         let board = Board::from_fen("8/8/8/8/8/8/8/K7 w - - 0 1");
         let moves = board.get_legal_moves(Square(A1));
-        assert!(moves.contains(&Move(Square(A1), Square(B1))));
-        assert!(moves.contains(&Move(Square(A1), Square(A2))));
-        assert!(moves.contains(&Move(Square(A1), Square(B2))));
+        assert!(moves.contains(&Move::new(A1, A2)));
+        assert!(moves.contains(&Move::new(A1, B1)));
+        assert!(moves.contains(&Move::new(A1, B2)));
         assert_eq!(moves.len(), 3);
 
         let board = Board::default();
@@ -277,25 +326,51 @@ mod tests {
         // Starting square
         let board = Board::default();
         let moves = board.get_legal_moves(Square(E2));
-        assert!(moves.contains(&Move(Square(E2), Square(E3))));
-        assert!(moves.contains(&Move(Square(E2), Square(E4))));
+        assert!(moves.contains(&Move::new(E2, E3)));
+        assert!(moves.contains(&Move::new(E2, E4)));
         assert_eq!(moves.len(), 2);
 
         // Normal move
         let board = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/3P4/PPP1PPPP/RNBQKBNR b KQkq - 0 1");
         let moves = board.get_legal_moves(Square(D3));
-        assert!(moves.contains(&Move(Square(D3), Square(D4))));
+        assert!(moves.contains(&Move::new(D3, D4)));
         assert_eq!(moves.len(), 1);
 
         // Attack
         let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
         let moves = board.get_legal_moves(Square(E4));
-        assert!(moves.contains(&Move(Square(E4), Square(E5))));
-        assert!(moves.contains(&Move(Square(E4), Square(D5))));
+        assert!(moves.contains(&Move::new(E4, D5)));
+        assert!(moves.contains(&Move::new(E4, E5)));
         assert_eq!(moves.len(), 2);
 
+        // Can't attack forward
+        let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+        let moves = board.get_legal_moves(Square(E4));
+        assert!(moves.is_empty());
+
+        // Normal promotion
+        let board = Board::from_fen("8/3P4/8/8/8/8/8/8 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D7));
+        assert!(moves.contains(&Move::promotion(D7, D8, BISHOP)));
+        assert!(moves.contains(&Move::promotion(D7, D8, KNIGHT)));
+        assert!(moves.contains(&Move::promotion(D7, D8, QUEEN)));
+        assert!(moves.contains(&Move::promotion(D7, D8, ROOK)));
+        assert_eq!(moves.len(), 4);
+
+        // Attacking promotion
+        let board = Board::from_fen("4q3/3P4/8/8/8/8/8/8 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D7));
+        assert!(moves.contains(&Move::promotion(D7, D8, BISHOP)));
+        assert!(moves.contains(&Move::promotion(D7, D8, KNIGHT)));
+        assert!(moves.contains(&Move::promotion(D7, D8, QUEEN)));
+        assert!(moves.contains(&Move::promotion(D7, D8, ROOK)));
+        assert!(moves.contains(&Move::promotion(D7, E8, BISHOP)));
+        assert!(moves.contains(&Move::promotion(D7, E8, KNIGHT)));
+        assert!(moves.contains(&Move::promotion(D7, E8, QUEEN)));
+        assert!(moves.contains(&Move::promotion(D7, E8, ROOK)));
+        assert_eq!(moves.len(), 8);
+
         // TODO: En passant
-        // TODO: Promotion
     }
 
     #[test]
@@ -303,24 +378,45 @@ mod tests {
         // Starting square
         let board = Board::default();
         let moves = board.get_legal_moves(Square(E7));
-        assert!(moves.contains(&Move(Square(E7), Square(E5))));
-        assert!(moves.contains(&Move(Square(E7), Square(E6))));
+        assert!(moves.contains(&Move::new(E7, E5)));
+        assert!(moves.contains(&Move::new(E7, E6)));
         assert_eq!(moves.len(), 2);
 
         // Normal move
         let board = Board::from_fen("rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
         let moves = board.get_legal_moves(Square(E6));
-        assert!(moves.contains(&Move(Square(E6), Square(E5))));
+        assert!(moves.contains(&Move::new(E6, E5)));
         assert_eq!(moves.len(), 1);
 
         // Attack
         let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
         let moves = board.get_legal_moves(Square(D5));
-        assert!(moves.contains(&Move(Square(D5), Square(D4))));
-        assert!(moves.contains(&Move(Square(D5), Square(E4))));
+        assert!(moves.contains(&Move::new(D5, D4)));
+        assert!(moves.contains(&Move::new(D5, E4)));
         assert_eq!(moves.len(), 2);
 
-        // TODO: En passant
+        // Normal promotion
+        let board = Board::from_fen("8/8/8/8/8/8/3p4/8 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D2));
+        assert!(moves.contains(&Move::promotion(D2, D1, BISHOP)));
+        assert!(moves.contains(&Move::promotion(D2, D1, KNIGHT)));
+        assert!(moves.contains(&Move::promotion(D2, D1, QUEEN)));
+        assert!(moves.contains(&Move::promotion(D2, D1, ROOK)));
+        assert_eq!(moves.len(), 4);
+
+        // Attacking promotion
+        let board = Board::from_fen("8/8/8/8/8/8/3p4/4Q3 w - - 0 1");
+        let moves = board.get_legal_moves(Square(D2));
+        assert!(moves.contains(&Move::promotion(D2, D1, BISHOP)));
+        assert!(moves.contains(&Move::promotion(D2, D1, KNIGHT)));
+        assert!(moves.contains(&Move::promotion(D2, D1, QUEEN)));
+        assert!(moves.contains(&Move::promotion(D2, D1, ROOK)));
+        assert!(moves.contains(&Move::promotion(D2, E1, BISHOP)));
+        assert!(moves.contains(&Move::promotion(D2, E1, KNIGHT)));
+        assert!(moves.contains(&Move::promotion(D2, E1, QUEEN)));
+        assert!(moves.contains(&Move::promotion(D2, E1, ROOK)));
+        assert_eq!(moves.len(), 8);
+
         // TODO: Promotion
     }
 
@@ -332,10 +428,10 @@ mod tests {
 
         let board = Board::from_fen("8/3r4/8/8/3R3q/8/3B4/8 w - - 0 1");
         let moves = board.get_legal_moves(Square(D4));
-        assert!(moves.contains(&Move(Square(D4), Square(D7))));
-        assert!(moves.contains(&Move(Square(D4), Square(H4))));
-        assert!(moves.contains(&Move(Square(D4), Square(D3))));
-        assert!(moves.contains(&Move(Square(D4), Square(A4))));
+        assert!(moves.contains(&Move::new(D4, A4)));
+        assert!(moves.contains(&Move::new(D4, D3)));
+        assert!(moves.contains(&Move::new(D4, D7)));
+        assert!(moves.contains(&Move::new(D4, H4)));
         assert_eq!(moves.len(), 11);
     }
 
@@ -347,10 +443,10 @@ mod tests {
 
         let board = Board::from_fen("8/6n1/1Q6/8/3B4/8/1r6/8 w - - 0 1");
         let moves = board.get_legal_moves(Square(D4));
-        assert!(moves.contains(&Move(Square(D4), Square(C5))));
-        assert!(moves.contains(&Move(Square(D4), Square(B2))));
-        assert!(moves.contains(&Move(Square(D4), Square(G1))));
-        assert!(moves.contains(&Move(Square(D4), Square(G7))));
+        assert!(moves.contains(&Move::new(D4, B2)));
+        assert!(moves.contains(&Move::new(D4, C5)));
+        assert!(moves.contains(&Move::new(D4, G1)));
+        assert!(moves.contains(&Move::new(D4, G7)));
         assert_eq!(moves.len(), 9);
     }
 
@@ -362,13 +458,13 @@ mod tests {
 
         let board = Board::from_fen("8/6n1/1R6/3K4/3Q2p1/8/1r6/8 w - - 0 1");
         let moves = board.get_legal_moves(Square(D4));
-        assert!(moves.contains(&Move(Square(D4), Square(A4))));
-        assert!(moves.contains(&Move(Square(D4), Square(C5))));
-        assert!(moves.contains(&Move(Square(D4), Square(B2))));
-        assert!(moves.contains(&Move(Square(D4), Square(D1))));
-        assert!(moves.contains(&Move(Square(D4), Square(G1))));
-        assert!(moves.contains(&Move(Square(D4), Square(G4))));
-        assert!(moves.contains(&Move(Square(D4), Square(G7))));
+        assert!(moves.contains(&Move::new(D4, A4)));
+        assert!(moves.contains(&Move::new(D4, B2)));
+        assert!(moves.contains(&Move::new(D4, C5)));
+        assert!(moves.contains(&Move::new(D4, D1)));
+        assert!(moves.contains(&Move::new(D4, G1)));
+        assert!(moves.contains(&Move::new(D4, G4)));
+        assert!(moves.contains(&Move::new(D4, G7)));
         assert_eq!(moves.len(), 18);
     }
 }

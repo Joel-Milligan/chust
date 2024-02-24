@@ -12,6 +12,6 @@ fn main() {
 
     println!("\nMOVES: b1");
     for mv in moves {
-        println!("{}", mv.destination());
+        println!("{}", mv.destination);
     }
 }

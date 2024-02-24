@@ -1,30 +1,71 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
+use crate::constants::{BISHOP, KNIGHT, QUEEN, ROOK};
 use crate::square::Square;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Move(pub Square, pub Square);
+pub struct Move {
+    pub source: Square,
+    pub destination: Square,
+    pub promotion: Option<usize>,
+}
 
 impl Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.0, self.1)
+        if self.promotion.is_some() {
+            let piece = match self.promotion.unwrap() {
+                KNIGHT => 'n',
+                BISHOP => 'b',
+                ROOK => 'r',
+                QUEEN => 'q',
+                _ => panic!("unknown promotition piece"),
+            };
+            write!(f, "{}{}{}", self.source, self.destination, piece)
+        } else {
+            write!(f, "{}{}", self.source, self.destination)
+        }
     }
 }
 
 impl Move {
-    pub fn coordinate(input: String) -> Move {
-        // TODO: Validate
-        let source = Square::from_str(&input[..2]).unwrap();
-        let destination = Square::from_str(&input[2..]).unwrap();
-        Move(source, destination)
+    pub fn new(source: usize, destination: usize) -> Move {
+        Move {
+            source: Square(source),
+            destination: Square(destination),
+            promotion: None,
+        }
     }
 
-    pub fn source(&self) -> &Square {
-        &self.0
+    pub fn promotion(source: usize, destination: usize, piece: usize) -> Move {
+        let mut mv = Move::new(source, destination);
+        mv.promotion = Some(piece);
+        mv
     }
 
-    pub fn destination(&self) -> &Square {
-        &self.1
+    pub fn coordinate(input: &str) -> Move {
+        if input.len() == 4 {
+            Move {
+                source: Square::from_str(&input[..2]).unwrap(),
+                destination: Square::from_str(&input[2..4]).unwrap(),
+                promotion: None,
+            }
+        } else if input.len() == 5 {
+            let piece = match input.chars().nth(4).unwrap() {
+                'b' => BISHOP,
+                'n' => KNIGHT,
+                'q' => QUEEN,
+                'r' => ROOK,
+                _ => panic!(),
+            };
+
+            Move {
+                source: Square::from_str(&input[..2]).unwrap(),
+                destination: Square::from_str(&input[2..4]).unwrap(),
+                promotion: Some(piece),
+            }
+        } else {
+            todo!("validation")
+        }
     }
 }

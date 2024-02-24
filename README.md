@@ -4,7 +4,6 @@ Chess in rust
 
 ## Tasks
 
-- Promotion
 - Check:
     - Moving into
     - Blocking

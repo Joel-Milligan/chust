@@ -23,7 +23,7 @@ pub struct Board {
     squares: [Option<(usize, usize)>; 64],
     active_colour: usize,
     castling: u8,
-    en_passant: Option<Square>,
+    en_passant: Option<usize>,
     /// Number of half moves since last capture or pawn push, used for the fifty-move rule
     half_moves: usize,
     full_moves: usize,
@@ -129,7 +129,7 @@ impl Board {
 
         let en_passant = match fields[3] {
             "-" => None,
-            square => Some(Square::from_str(square).map_err(|_| FenError)?),
+            square => Some(Square::from_str(square).map_err(|_| FenError)?.0),
         };
 
         let half_moves = fields[4].parse().map_err(|_| FenError)?;
@@ -214,11 +214,15 @@ impl Board {
     }
 
     pub fn make_move(&mut self, mv: Move) {
-        // TODO: En passant
-
         // Pieces
         let (colour, piece) = self.squares[mv.source.0].unwrap();
         let captured_piece = self.squares[mv.destination.0];
+
+        let opponent_colour = if colour == WHITE {
+            BLACK
+        } else {
+            WHITE
+        };
 
         // Squares
         self.squares[mv.source.0] = None;
@@ -260,6 +264,27 @@ impl Board {
             }
         }
 
+        // En passant
+        if piece == PAWN && self.en_passant.is_some_and(|ep| mv.destination.0 == ep) {
+            if colour == WHITE {
+                self.squares[mv.destination.0 - 8] = None;
+                self.bitboards[BLACK][PAWN] ^= 1 << mv.destination.0 - 8;
+            } else {
+                self.squares[mv.destination.0 + 8] = None;
+                self.bitboards[WHITE][PAWN] ^= 1 << mv.destination.0 + 8;
+            }
+        }
+
+        if piece == PAWN && mv.source.0.abs_diff(mv.destination.0) == 16 {
+            if colour == WHITE {
+                self.en_passant = Some(mv.source.0 + 8);
+            } else {
+                self.en_passant = Some(mv.source.0 - 8);
+            }
+        } else {
+            self.en_passant = None;
+        }
+
         // Bitboards
         if let Some(promotion) = mv.promotion {
             self.bitboards[colour][piece] ^= 1 << mv.source.0;
@@ -272,11 +297,15 @@ impl Board {
             self.bitboards[piece.0][piece.1] ^= 1 << mv.destination.0;
         };
 
-        // Toggle active colour
-        if self.active_colour == WHITE {
-            self.active_colour = BLACK;
+        if self.active_colour == BLACK {
+            self.full_moves += 1;
+        }
+        self.active_colour = opponent_colour;
+
+        if captured_piece.is_some() || piece == PAWN {
+            self.half_moves = 0;
         } else {
-            self.active_colour = WHITE;
+            self.half_moves += 1;
         }
     }
 }
@@ -315,7 +344,7 @@ mod tests {
     fn board_from_fen() {
         let board = Board::from_fen("rn3rk1/p3qpp1/1p2b2p/2pp4/3P4/3BPN2/PP3PPP/R2Q1RK1 w - c6 0 13").unwrap();
         assert_eq!(board.active_colour, WHITE);
-        assert_eq!(board.en_passant, Some(Square(C6)));
+        assert_eq!(board.en_passant, Some(C6));
         assert_eq!(board.half_moves, 0);
         assert_eq!(board.full_moves, 13);
 
@@ -411,7 +440,23 @@ mod tests {
     }
 
     #[test]
-    fn en_passant() {}
+    fn en_passant() {
+        let mut board = Board::from_fen("8/3p4/8/4P3/8/8/8/8 b - - 0 1").unwrap();
+        board.make_move(Move::coordinate("d7d5"));
+        board.make_move(Move::coordinate("e5d6"));
+        assert_eq!(board.squares[D5], None);
+        assert_eq!(board.squares[D6], Some((WHITE, PAWN)));
+        assert_eq!(board.bitboards[WHITE][PAWN], 0x80000000000);
+        assert_eq!(board.bitboards[BLACK][PAWN], 0x0);
+
+        let mut board = Board::from_fen("8/8/8/8/3p4/8/4P3/8 w - - 0 1").unwrap();
+        board.make_move(Move::coordinate("e2e4"));
+        board.make_move(Move::coordinate("d4e3"));
+        assert_eq!(board.squares[E4], None);
+        assert_eq!(board.squares[E3], Some((BLACK, PAWN)));
+        assert_eq!(board.bitboards[BLACK][PAWN], 0x100000);
+        assert_eq!(board.bitboards[WHITE][PAWN], 0x0);
+    }
 
     #[test]
     fn legal_knight_moves() {

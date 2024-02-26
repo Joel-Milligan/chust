@@ -11,6 +11,12 @@ pub const BISHOP: usize = 3;
 pub const KNIGHT: usize = 4;
 pub const PAWN: usize = 5;
 
+// Castling
+pub const WHITE_KING_SIDE: u8 = 1;
+pub const WHITE_QUEEN_SIDE: u8 = 2;
+pub const BLACK_KING_SIDE: u8 = 4;
+pub const BLACK_QUEEN_SIDE: u8 = 8;
+
 // Files
 pub const A_FILE: u64 = 0x0101010101010101;
 pub const B_FILE: u64 = 0x0202020202020202;

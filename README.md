@@ -4,14 +4,10 @@ Chess in rust
 
 ## Tasks
 
-- Check:
-    - Moving into
-    - Blocking
-    - Moving blocker out of the way
-    - Castling through check
-    - Castling out of check
+- Naive Check
 - En passant
 - Castling
+- PERFT
 - Pre-compute lookup tables for moves
 - Algebraic notation
 - PGN

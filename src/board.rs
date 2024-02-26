@@ -10,12 +10,18 @@ use crate::piece_move::Move;
 use crate::square::Square;
 
 use std::fmt::Display;
+use std::str::FromStr;
 
 pub struct Board {
     bitboards: [[u64; 6]; 2],
     /// Each square contains Option<(COLOUR, PIECE)>
     squares: [Option<(usize, usize)>; 64],
-    turn: usize,
+    active_colour: usize,
+    castling: Vec<(usize, usize)>,
+    en_passant: Option<Square>,
+    /// Number of half moves since last capture or pawn push, used for the fifty-move rule
+    half_moves: usize,
+    full_moves: usize,
 }
 
 impl Default for Board {
@@ -57,6 +63,7 @@ impl Display for Board {
 
 impl Board {
     pub fn from_fen(fen: &str) -> Self {
+        // TODO: This should return Result
         let mut squares = [None; 64];
         let mut bitboards = [[0; 6]; 2];
 
@@ -94,21 +101,40 @@ impl Board {
             idx += 1;
         }
 
-        let turn = match fields[1] {
+        let active_colour = match fields[1] {
             "w" => WHITE,
             "b" => BLACK,
             colour => panic!("invalid colour: {colour}"),
         };
 
-        // TODO: castling availability
-        // TODO: en passant square
-        // TODO: halfmove clock
-        // TODO: fullmove clock
+        let castling = fields[2]
+            .chars()
+            .filter(|c| c != &'-')
+            .map(|c| match c {
+                'K' => (WHITE, KING),
+                'k' => (BLACK, KING),
+                'Q' => (WHITE, QUEEN),
+                'q' => (BLACK, QUEEN),
+                _ => unimplemented!("validation")
+            })
+            .collect();
+
+        let en_passant = match fields[3] {
+            "-" => None,
+            square => Some(Square::from_str(square).unwrap()),
+        };
+
+        let half_moves = fields[4].parse().unwrap();
+        let full_moves = fields[5].parse().unwrap();
 
         Board {
             bitboards,
             squares,
-            turn,
+            active_colour,
+            castling,
+            en_passant,
+            half_moves,
+            full_moves,
         }
     }
 
@@ -210,11 +236,11 @@ impl Board {
             self.bitboards[piece.0][piece.1] ^= 1 << mv.destination.0;
         };
 
-        // Turn
-        if self.turn == WHITE {
-            self.turn = BLACK;
+        // Active colour
+        if self.active_colour == WHITE {
+            self.active_colour = BLACK;
         } else {
-            self.turn = WHITE;
+            self.active_colour = WHITE;
         }
     }
 }
@@ -224,15 +250,55 @@ mod tests {
     use super::*;
 
     #[test]
-    fn create_board() {
+    fn board_default() {
         let board = Board::default();
 
+        // Squares
         assert_eq!(board.squares[E2], Some((WHITE, PAWN)));
         assert_eq!(board.squares[A8], Some((BLACK, ROOK)));
         assert_eq!(board.squares[F6], None);
 
+        // Bitboards
         assert_eq!(board.bitboards[WHITE][PAWN], 0xff00);
         assert_eq!(board.bitboards[BLACK][KING], 0x1000000000000000);
+
+        // Active Colour
+        assert_eq!(board.active_colour, WHITE);
+
+        // Castling
+        assert!(board.castling.contains(&(WHITE, KING)));
+        assert!(board.castling.contains(&(WHITE, QUEEN)));
+        assert!(board.castling.contains(&(BLACK, KING)));
+        assert!(board.castling.contains(&(BLACK, QUEEN)));
+        assert_eq!(board.castling.len(), 4);
+
+        // En passant square
+        assert_eq!(board.en_passant, None);
+        
+        // Half moves
+        assert_eq!(board.half_moves, 0);
+
+        // Full moves
+        assert_eq!(board.full_moves, 1);
+    }
+
+    #[test]
+    fn board_from_fen() {
+        let board = Board::from_fen("rn3rk1/p3qpp1/1p2b2p/2pp4/3P4/3BPN2/PP3PPP/R2Q1RK1 w - c6 0 13");
+        assert_eq!(board.active_colour, WHITE);
+        assert_eq!(board.castling.len(), 0);
+        assert_eq!(board.en_passant, Some(Square(C6)));
+        assert_eq!(board.half_moves, 0);
+        assert_eq!(board.full_moves, 13);
+
+        let board = Board::from_fen("rnb2rk1/p1p1qpp1/1p5p/3p4/3P4/3BPN2/PP3PPP/R2QK2R b KQ - 1 11");
+        assert_eq!(board.active_colour, BLACK);
+        assert!(board.castling.contains(&(WHITE, KING)));
+        assert!(board.castling.contains(&(WHITE, QUEEN)));
+        assert_eq!(board.castling.len(), 2);
+        assert_eq!(board.en_passant, None);
+        assert_eq!(board.half_moves, 1);
+        assert_eq!(board.full_moves, 11);
     }
 
     #[test]

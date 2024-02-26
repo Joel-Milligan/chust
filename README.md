@@ -13,7 +13,6 @@ Chess in rust
 - En passant
 - Castling
 - Pre-compute lookup tables for moves
-- Use the rest of the fields from the FEN string
 - Algebraic notation
 - PGN
 - Error handling and validation

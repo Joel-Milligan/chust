@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 bitvec = "1"
+thiserror="1"

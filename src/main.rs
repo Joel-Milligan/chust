@@ -1,17 +1,9 @@
-use std::str::FromStr;
-
 use chust::board::Board;
-use chust::square::Square;
 
 fn main() {
-    let board = Board::default();
-    println!("{board}");
-
-    let square = Square::from_str("b1").unwrap();
-    let moves = board.get_legal_moves(square);
-
-    println!("\nMOVES: b1");
-    for mv in moves {
-        println!("{}", mv.destination);
-    }
+    let board = Board::from_fen("rnbqkbnr/lppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    match board {
+        Err(..) => println!("Bad FEN provided, cannot create board."),
+        Ok(_) => (),
+    };
 }

@@ -3,6 +3,21 @@ use std::sync::LazyLock;
 use crate::bitboards::filter;
 use crate::constants::*;
 
+pub fn generate_pawn_moves(square: usize, blockers: u64, colour: usize) -> u64 {
+    let mut moves = PAWN_MOVES[colour][square];
+    let bitboard = 1 << square;
+
+    let rank = square / 8;
+
+    if colour == WHITE && rank == 1 && blockers & bitboard << 8 != 0 {
+        moves ^= bitboard << 16;
+    } else if colour == BLACK && rank == 8 && blockers & bitboard >> 8 != 0 {
+        moves ^= bitboard >> 16;
+    }
+
+    moves
+}
+
 pub static PAWN_MOVES: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
     let mut pawn_moves = [[0; 64]; 2];
 

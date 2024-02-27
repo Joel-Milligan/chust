@@ -150,6 +150,19 @@ impl Board {
     }
 
     pub fn moves(&self) -> Vec<Move> {
+        self.pseudo_legal_moves()
+            .into_iter()
+            .filter(|candidate| {
+                let mut board = self.clone();
+                board.make_move(candidate.clone());
+                !board.pseudo_legal_moves()
+                    .into_iter()
+                    .any(|mv| board.squares[mv.destination.0] == Some((self.active_colour, KING)))
+            })
+            .collect()
+    }
+
+    fn pseudo_legal_moves(&self) -> Vec<Move> {
         self.squares
             .into_iter()
             .enumerate()
@@ -183,17 +196,17 @@ impl Board {
         let knight_moves = generate_knight_moves(source);
         let pawn_moves = generate_pawn_moves(source, blockers, colour);
         let rook_moves = generate_rook_moves(source, blockers);
+        let pawn_attacks = PAWN_ATTACKS[colour][source] & (opponent_pieces | self.en_passant.map_or(0, |s| 1 << s));
 
         let moves = match piece {
             BISHOP => bishop_moves,
             KING => king_moves,
             KNIGHT => knight_moves,
-            PAWN => (PAWN_ATTACKS[colour][source] & opponent_pieces) | (pawn_moves & !opponent_pieces),
+            PAWN => pawn_attacks | (pawn_moves & !opponent_pieces),
             QUEEN => bishop_moves | rook_moves,
             ROOK => rook_moves,
             _ => panic!("Unknown piece"),
         };
-
 
         let moves = moves & !friendly_pieces;
         let moves = moves.view_bits::<Lsb0>();
@@ -331,18 +344,18 @@ impl Board {
         }
     }
 
-    pub fn perft(&self, depth: usize) -> usize {
-        if depth == 0 {
-            1
+    pub fn perft(&mut self, depth: usize) -> usize {
+        let moves = self.moves();
+
+        if depth == 1 {
+            moves.len()
         } else {
-            let mut board = self.clone();
             let mut nodes = 0;
-            let moves = board.moves();
 
             for mv in moves {
-                board.make_move(mv);
+                self.make_move(mv);
                 nodes += self.perft(depth - 1);
-                board.unmake_move();
+                self.unmake_move();
             }
 
             nodes
@@ -582,7 +595,13 @@ mod tests {
         assert!(moves.contains(&Move::promotion(D7, E8, ROOK)));
         assert_eq!(moves.len(), 8);
 
-        // TODO: En passant
+        // En passant
+        let board = Board::from_fen("rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3").unwrap();
+        let moves = board.pseudo_legal_moves_square(Square(E5));
+        assert!(moves.contains(&Move::new(E5, D6)));
+        assert!(moves.contains(&Move::new(E5, E6)));
+        assert!(moves.contains(&Move::new(E5, F6)));
+        assert_eq!(moves.len(), 3);
     }
 
     #[test]
@@ -697,16 +716,29 @@ mod tests {
 
     #[test]
     fn perft() {
-        let starting_position = Board::default();
+        let mut starting_position = Board::default();
         assert_eq!(starting_position.perft(1), 20);
         assert_eq!(starting_position.perft(2), 400);
+        assert_eq!(starting_position.perft(3), 8902);
+        //assert_eq!(starting_position.perft(4), 197_281);
 
-        let opening = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
+        let mut opening = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
         assert_eq!(opening.perft(1), 48);
+        //assert_eq!(opening.perft(2), 2039);
 
-        let endgame = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
+        let mut endgame = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
         assert_eq!(endgame.perft(1), 14);
+        assert_eq!(endgame.perft(2), 191);
+        assert_eq!(endgame.perft(3), 2812);
+        //assert_eq!(endgame.perft(4), 43238);
 
+        let mut middlegame = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1").unwrap();
+        assert_eq!(middlegame.perft(1), 6);
+        //assert_eq!(middlegame.perft(2), 264);
 
+        let mut bug_finder = Board::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8").unwrap();
+        assert_eq!(bug_finder.perft(1), 44);
+        //assert_eq!(bug_finder.perft(2), 1486);
+        //assert_eq!(bug_finder.perft(3), 62379);
     }
 }

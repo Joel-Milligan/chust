@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::constants::{BISHOP, KNIGHT, QUEEN, ROOK};
 use crate::square::Square;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Move {
     pub source: Square,
     pub destination: Square,

@@ -17,6 +17,7 @@ use std::str::FromStr;
 #[error("poorly formatted fen string")]
 pub struct FenError;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Board {
     bitboards: [[u64; 6]; 2],
     /// Each square contains Option<(COLOUR, PIECE)>
@@ -27,6 +28,7 @@ pub struct Board {
     /// Number of half moves since last capture or pawn push, used for the fifty-move rule
     half_moves: usize,
     full_moves: usize,
+    previous_position: Option<Box<Board>>
 }
 
 impl Default for Board {
@@ -143,6 +145,7 @@ impl Board {
             en_passant,
             half_moves,
             full_moves,
+            previous_position: None,
         })
     }
 
@@ -214,6 +217,9 @@ impl Board {
     }
 
     pub fn make_move(&mut self, mv: Move) {
+        // Save current position for unmaking moves
+        self.previous_position = Some(Box::new(self.clone()));
+
         // Pieces
         let (colour, piece) = self.squares[mv.source.0].unwrap();
         let captured_piece = self.squares[mv.destination.0];
@@ -306,6 +312,12 @@ impl Board {
             self.half_moves = 0;
         } else {
             self.half_moves += 1;
+        }
+    }
+
+    pub fn unmake_move(&mut self) {
+        if let Some(previous) = &self.previous_position {
+            *self = *previous.clone();
         }
     }
 }
@@ -638,5 +650,20 @@ mod tests {
         assert!(moves.contains(&Move::new(D4, G4)));
         assert!(moves.contains(&Move::new(D4, G7)));
         assert_eq!(moves.len(), 18);
+    }
+
+    #[test]
+    fn unmake_move() {
+        let mut board = Board::default();
+        board.make_move(Move::coordinate("e2e4"));
+        board.unmake_move();
+        assert_eq!(board, Board::default());
+
+        let mut board = Board::default();
+        board.make_move(Move::coordinate("e2e4"));
+        board.make_move(Move::coordinate("e7e5"));
+        board.unmake_move();
+        board.unmake_move();
+        assert_eq!(board, Board::default());
     }
 }

@@ -2,8 +2,8 @@ use bitvec::prelude::*;
 use thiserror::Error;
 
 use crate::calculated::bishop::generate_bishop_moves;
-use crate::calculated::king::KING_MOVES;
-use crate::calculated::knight::KNIGHT_MOVES;
+use crate::calculated::king::generate_king_moves;
+use crate::calculated::knight::generate_knight_moves;
 use crate::calculated::pawn::{generate_pawn_moves, PAWN_ATTACKS};
 use crate::calculated::rook::generate_rook_moves;
 use crate::constants::*;
@@ -179,58 +179,16 @@ impl Board {
         let blockers = friendly_pieces | opponent_pieces;
 
         let bishop_moves = generate_bishop_moves(source, blockers);
+        let king_moves = generate_king_moves(source, blockers, colour, self.castling);
+        let knight_moves = generate_knight_moves(source);
         let pawn_moves = generate_pawn_moves(source, blockers, colour);
         let rook_moves = generate_rook_moves(source, blockers);
 
         let moves = match piece {
             BISHOP => bishop_moves,
-            KING => {
-                let mut m = KING_MOVES[source];
-
-                // Castling
-                if colour == WHITE {
-                    // King side
-                    if self.squares[F1].is_none() && 
-                        self.squares[G1].is_none() && 
-                        self.castling & WHITE_KING_SIDE != 0 
-                    {
-                        m |= 1 << G1;
-                    }
-
-                    // Queen side
-                    if self.squares[B1].is_none() && 
-                        self.squares[C1].is_none() && 
-                        self.squares[D1].is_none() && 
-                        self.castling & WHITE_QUEEN_SIDE != 0 
-                    {
-                        m |= 1 << C1;
-                    }
-                } else {
-                    // King side
-                    if self.squares[F8].is_none() && 
-                        self.squares[G8].is_none() && 
-                        self.castling & BLACK_KING_SIDE != 0 
-                    {
-                        m |= 1 << G8;
-                    }
-
-                    // Queen side
-                    if self.squares[B8].is_none() && 
-                        self.squares[C8].is_none() && 
-                        self.squares[D8].is_none() && 
-                        self.castling & BLACK_QUEEN_SIDE != 0 
-                    {
-                        m |= 1 << C8;
-                    }
-                }
-
-                m
-            },
-            KNIGHT => KNIGHT_MOVES[source],
-            PAWN => {
-                (PAWN_ATTACKS[colour][source] & opponent_pieces)
-                    | (pawn_moves & !opponent_pieces)
-            }
+            KING => king_moves,
+            KNIGHT => knight_moves,
+            PAWN => (PAWN_ATTACKS[colour][source] & opponent_pieces) | (pawn_moves & !opponent_pieces),
             QUEEN => bishop_moves | rook_moves,
             ROOK => rook_moves,
             _ => panic!("Unknown piece"),
@@ -743,10 +701,12 @@ mod tests {
         assert_eq!(starting_position.perft(1), 20);
         assert_eq!(starting_position.perft(2), 400);
 
-        let middlegame = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
-        assert_eq!(middlegame.perft(1), 48);
+        let opening = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
+        assert_eq!(opening.perft(1), 48);
 
         let endgame = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
         assert_eq!(endgame.perft(1), 14);
+
+
     }
 }

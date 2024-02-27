@@ -3,8 +3,11 @@ use std::sync::LazyLock;
 use crate::bitboards::filter;
 use crate::constants::*;
 
-pub static KNIGHT_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
-    // TODO: Filter out moves onto friendly pieces
+pub fn generate_knight_moves(square: usize) -> u64 {
+    KNIGHT_MOVES[square]
+}
+
+static KNIGHT_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
     let mut knight_moves = [0; 64];
 
     for square in A1..=H8 {

@@ -3,7 +3,32 @@ use std::sync::LazyLock;
 use crate::bitboards::filter;
 use crate::constants::*;
 
-pub static KING_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
+pub fn generate_king_moves(square: usize, blockers: u64, colour: usize, castling: u8) -> u64 {
+    let mut moves = KING_MOVES[square];
+
+    // Castling
+    if colour == WHITE {
+        if blockers & (1 << F1 | 1 << G1) == 0 && castling & WHITE_KING_SIDE != 0 {
+            moves |= 1 << G1;
+        }
+
+        if blockers & (1 << B1 | 1 << C1 | 1 << D1) == 0 && castling & WHITE_QUEEN_SIDE != 0 {
+            moves |= 1 << C1;
+        }
+    } else {
+        if blockers & (1 << F8 | 1 << G8) == 0 && castling & BLACK_KING_SIDE != 0 {
+            moves |= 1 << G8;
+        }
+
+        if blockers & (1 << B8 | 1 << C8 | 1 << D8) == 0 && castling & BLACK_QUEEN_SIDE != 0 {
+            moves |= 1 << C8;
+        }
+    }
+
+    moves
+}
+
+static KING_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
     let mut king_moves = [0; 64];
 
     for square in A1..=H8 {

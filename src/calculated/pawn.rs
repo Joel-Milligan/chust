@@ -18,7 +18,7 @@ pub fn generate_pawn_moves(square: usize, blockers: u64, colour: usize) -> u64 {
     moves
 }
 
-pub static PAWN_MOVES: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
+static PAWN_MOVES: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
     let mut pawn_moves = [[0; 64]; 2];
 
     for side in WHITE..=BLACK {

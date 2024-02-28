@@ -3,7 +3,7 @@
 pub mod board;
 pub mod piece_move;
 
-mod bitboards;
+pub mod bitboards;
 mod calculated;
 mod constants;
 pub mod square;

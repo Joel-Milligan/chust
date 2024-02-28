@@ -4,8 +4,6 @@ Chess in rust
 
 ## Tasks
 
-- Naive Check
-- PERFT
 - Pre-compute lookup tables for moves
 - Algebraic notation
 - PGN

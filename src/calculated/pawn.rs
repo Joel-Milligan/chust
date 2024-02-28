@@ -11,7 +11,7 @@ pub fn generate_pawn_moves(square: usize, blockers: u64, colour: usize) -> u64 {
 
     if colour == WHITE && rank == 1 && blockers & bitboard << 8 != 0 {
         moves ^= bitboard << 16;
-    } else if colour == BLACK && rank == 8 && blockers & bitboard >> 8 != 0 {
+    } else if colour == BLACK && rank == 6 && blockers & bitboard >> 8 != 0 {
         moves ^= bitboard >> 16;
     }
 

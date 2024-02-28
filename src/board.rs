@@ -2,7 +2,7 @@ use bitvec::prelude::*;
 use thiserror::Error;
 
 use crate::calculated::bishop::generate_bishop_moves;
-use crate::calculated::king::generate_king_moves;
+use crate::calculated::king::{generate_king_moves, KING_MOVES};
 use crate::calculated::knight::generate_knight_moves;
 use crate::calculated::pawn::{generate_pawn_moves, PAWN_ATTACKS};
 use crate::calculated::rook::generate_rook_moves;
@@ -191,20 +191,15 @@ impl Board {
 
         let blockers = friendly_pieces | opponent_pieces;
 
-        let bishop_moves = generate_bishop_moves(source, blockers);
-        let king_moves = generate_king_moves(source, blockers, colour, self.castling);
-        let knight_moves = generate_knight_moves(source);
-        let pawn_moves = generate_pawn_moves(source, blockers, colour);
-        let rook_moves = generate_rook_moves(source, blockers);
         let pawn_attacks = PAWN_ATTACKS[colour][source] & (opponent_pieces | self.en_passant.map_or(0, |s| 1 << s));
 
         let moves = match piece {
-            BISHOP => bishop_moves,
-            KING => king_moves,
-            KNIGHT => knight_moves,
-            PAWN => pawn_attacks | (pawn_moves & !opponent_pieces),
-            QUEEN => bishop_moves | rook_moves,
-            ROOK => rook_moves,
+            BISHOP => generate_bishop_moves(source, blockers),
+            KING => generate_king_moves(source, blockers, colour, self.attacked_squares(opponent_colour), self.castling),
+            KNIGHT => generate_knight_moves(source),
+            PAWN => pawn_attacks | (generate_pawn_moves(source, blockers, colour) & !opponent_pieces),
+            QUEEN => generate_bishop_moves(source, blockers) | generate_rook_moves(source, blockers),
+            ROOK => generate_rook_moves(source, blockers),
             _ => panic!("Unknown piece"),
         };
 
@@ -266,31 +261,60 @@ impl Board {
         if piece == KING && mv.source.0.abs_diff(mv.destination.0) == 2 {
             match mv.destination.0 {
                 G1 => {
-                    self.castling ^= WHITE_KING_SIDE;
                     self.squares[H1] = None;
                     self.squares[F1] = Some((WHITE, ROOK));
                     self.bitboards[colour][ROOK] ^= 1 << F1 | 1 << H1;
                 },
                 C1 => {
-                    self.castling ^= WHITE_QUEEN_SIDE;
                     self.squares[A1] = None;
                     self.squares[D1] = Some((WHITE, ROOK));
                     self.bitboards[colour][ROOK] ^= 1 << D1 | 1 << A1;
                 },
                 G8 => {
-                    self.castling ^= BLACK_KING_SIDE;
                     self.squares[H8] = None;
                     self.squares[F8] = Some((BLACK, ROOK));
                     self.bitboards[colour][ROOK] ^= 1 << F8 | 1 << H8;
                 },
                 C8 => {
-                    self.castling ^= BLACK_QUEEN_SIDE;
                     self.squares[A8] = None;
                     self.squares[D8] = Some((BLACK, ROOK));
                     self.bitboards[colour][ROOK] ^= 1 << D8 | 1 << A8;
                 },
                 s => panic!("can't castle to square: {}", Square(s))
             }
+        }
+
+        // Moving king prevents castling
+        if piece == KING {
+            if colour == WHITE {
+                self.castling &= !(WHITE_KING_SIDE | WHITE_QUEEN_SIDE);
+            } else {
+                self.castling &= !(BLACK_KING_SIDE | BLACK_QUEEN_SIDE);
+            }
+        }
+        
+        // Moving rook prevents castling
+        if piece == ROOK {
+            if self.castling & WHITE_KING_SIDE != 0 && mv.source.0 == H1 {
+                self.castling ^= WHITE_KING_SIDE;
+            } else if self.castling & WHITE_QUEEN_SIDE != 0 && mv.source.0 == A1 {
+                self.castling ^= WHITE_QUEEN_SIDE;
+            } else if self.castling & BLACK_KING_SIDE != 0 && mv.source.0 == H8 {
+                self.castling ^= BLACK_KING_SIDE;
+            } else if self.castling & BLACK_QUEEN_SIDE != 0 && mv.source.0 == A8 {
+                self.castling ^= BLACK_QUEEN_SIDE;
+            }
+        }
+
+        // Captured rook prevents castling
+        if self.castling & WHITE_KING_SIDE != 0 && mv.destination.0 == H1 {
+            self.castling ^= WHITE_KING_SIDE;
+        } else if self.castling & WHITE_QUEEN_SIDE != 0 && mv.destination.0 == A1 {
+            self.castling ^= WHITE_QUEEN_SIDE;
+        } else if self.castling & BLACK_KING_SIDE != 0 && mv.destination.0 == H8 {
+            self.castling ^= BLACK_KING_SIDE;
+        } else if self.castling & BLACK_QUEEN_SIDE != 0 && mv.destination.0 == A8 {
+            self.castling ^= BLACK_QUEEN_SIDE;
         }
 
         // En passant
@@ -344,10 +368,39 @@ impl Board {
         }
     }
 
+    pub fn attacked_squares(&self, colour: usize) -> u64 {
+        self.squares
+            .into_iter()
+            .enumerate()
+            .filter(|(_, s)| s.is_some_and(|(c, _)| c == colour))
+            .map(|(square, s)| {
+                match s.unwrap().1 {
+                BISHOP => generate_bishop_moves(square, self.blockers()),
+                KING => KING_MOVES[square],
+                KNIGHT => generate_knight_moves(square),
+                PAWN => PAWN_ATTACKS[colour][square],
+                QUEEN => generate_bishop_moves(square, self.blockers()) | generate_rook_moves(square, self.blockers()),
+                ROOK => generate_rook_moves(square, self.blockers()),
+                _ => panic!("unknown piece"),
+            }})
+            .reduce(|acc, e| acc | e)
+            .unwrap_or(0)
+    }
+
+    fn blockers(&self) -> u64 {
+        self.bitboards
+            .into_iter()
+            .flatten()
+            .reduce(|acc, e| acc | e)
+            .unwrap_or(0)
+    }
+
     pub fn perft(&mut self, depth: usize) -> usize {
         let moves = self.moves();
 
-        if depth == 1 {
+        if depth == 0 {
+            1
+        } else if depth == 1 {
             moves.len()
         } else {
             let mut nodes = 0;
@@ -360,6 +413,23 @@ impl Board {
 
             nodes
         }
+    }
+
+    pub fn divide(&mut self, depth: usize) {
+        let moves = self.moves();
+        let mut nodes = 0;
+
+        for mv in &moves {
+            self.make_move(mv.clone());
+
+            let perft = self.perft(depth - 1);
+            nodes += perft;
+            println!("{} {}", mv, perft);
+
+            self.unmake_move();
+        }
+
+        println!("\n{}", nodes);
     }
 }
 
@@ -543,7 +613,16 @@ mod tests {
         let moves = board.pseudo_legal_moves_square(Square(E1));
         assert!(moves.is_empty());
 
-        // TODO: Castling
+        let board = Board::from_fen("8/8/8/8/8/8/3PPP2/R3K2R w KQ - 0 1").unwrap();
+        let moves = board.pseudo_legal_moves_square(Square(E1));
+        assert!(moves.contains(&Move::new(E1, C1)));
+        assert!(moves.contains(&Move::new(E1, G1)));
+        assert_eq!(moves.len(), 4);
+
+        let board = Board::from_fen("2r5/8/8/8/8/8/3PPP2/R3K2R w KQ - 0 1").unwrap();
+        let moves = board.pseudo_legal_moves_square(Square(E1));
+        assert!(moves.contains(&Move::new(E1, G1)));
+        assert_eq!(moves.len(), 3);
     }
 
     #[test]
@@ -719,26 +798,24 @@ mod tests {
         let mut starting_position = Board::default();
         assert_eq!(starting_position.perft(1), 20);
         assert_eq!(starting_position.perft(2), 400);
-        assert_eq!(starting_position.perft(3), 8902);
-        //assert_eq!(starting_position.perft(4), 197_281);
+        assert_eq!(starting_position.perft(3), 8_902);
 
         let mut opening = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
         assert_eq!(opening.perft(1), 48);
-        //assert_eq!(opening.perft(2), 2039);
+        assert_eq!(opening.perft(2), 2_039);
 
         let mut endgame = Board::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
         assert_eq!(endgame.perft(1), 14);
         assert_eq!(endgame.perft(2), 191);
-        assert_eq!(endgame.perft(3), 2812);
-        //assert_eq!(endgame.perft(4), 43238);
+        assert_eq!(endgame.perft(3), 2_812);
 
         let mut middlegame = Board::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1").unwrap();
         assert_eq!(middlegame.perft(1), 6);
-        //assert_eq!(middlegame.perft(2), 264);
+        assert_eq!(middlegame.perft(2), 264);
+        assert_eq!(middlegame.perft(3), 9_467);
 
         let mut bug_finder = Board::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8").unwrap();
         assert_eq!(bug_finder.perft(1), 44);
-        //assert_eq!(bug_finder.perft(2), 1486);
-        //assert_eq!(bug_finder.perft(3), 62379);
+        assert_eq!(bug_finder.perft(2), 1486);
     }
 }

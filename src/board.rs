@@ -21,8 +21,8 @@ pub struct FenError;
 pub struct Board {
     bitboards: [[u64; 6]; 2],
     /// Each square contains Option<(COLOUR, PIECE)>
-    squares: [Option<(usize, usize)>; 64],
-    active_colour: usize,
+    pub squares: [Option<(usize, usize)>; 64],
+    pub active_colour: usize,
     castling: u8,
     en_passant: Option<usize>,
     /// Number of half moves since last capture or pawn push, used for the fifty-move rule
@@ -154,7 +154,7 @@ impl Board {
             .into_iter()
             .filter(|candidate| {
                 let mut board = self.clone();
-                board.make_move(candidate.clone());
+                board.make_move(candidate);
                 !board.pseudo_legal_moves()
                     .into_iter()
                     .any(|mv| board.squares[mv.destination.0] == Some((self.active_colour, KING)))
@@ -234,7 +234,7 @@ impl Board {
             .collect()
     }
 
-    pub fn make_move(&mut self, mv: Move) {
+    pub fn make_move(&mut self, mv: &Move) {
         // Save current position for unmaking moves
         self.previous_position = Some(Box::new(self.clone()));
 
@@ -406,7 +406,7 @@ impl Board {
             let mut nodes = 0;
 
             for mv in moves {
-                self.make_move(mv);
+                self.make_move(&mv);
                 nodes += self.perft(depth - 1);
                 self.unmake_move();
             }
@@ -420,7 +420,7 @@ impl Board {
         let mut nodes = 0;
 
         for mv in &moves {
-            self.make_move(mv.clone());
+            self.make_move(mv);
 
             let perft = self.perft(depth - 1);
             nodes += perft;
@@ -438,356 +438,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn board_default() {
-        let board = Board::default();
-
-        // Squares
-        assert_eq!(board.squares[E2], Some((WHITE, PAWN)));
-        assert_eq!(board.squares[A8], Some((BLACK, ROOK)));
-        assert_eq!(board.squares[F6], None);
-
-        // Bitboards
-        assert_eq!(board.bitboards[WHITE][PAWN], 0xff00);
-        assert_eq!(board.bitboards[BLACK][KING], 0x1000000000000000);
-
-        // Active Colour
-        assert_eq!(board.active_colour, WHITE);
-
-        // En passant square
-        assert_eq!(board.en_passant, None);
-        
-        // Half moves
-        assert_eq!(board.half_moves, 0);
-
-        // Full moves
-        assert_eq!(board.full_moves, 1);
-    }
-
-    #[test]
-    fn board_from_fen() {
-        let board = Board::from_fen("rn3rk1/p3qpp1/1p2b2p/2pp4/3P4/3BPN2/PP3PPP/R2Q1RK1 w - c6 0 13").unwrap();
-        assert_eq!(board.active_colour, WHITE);
-        assert_eq!(board.en_passant, Some(C6));
-        assert_eq!(board.half_moves, 0);
-        assert_eq!(board.full_moves, 13);
-
-        let board = Board::from_fen("rnb2rk1/p1p1qpp1/1p5p/3p4/3P4/3BPN2/PP3PPP/R2QK2R b KQ - 1 11").unwrap();
-        assert_eq!(board.active_colour, BLACK);
-        assert_eq!(board.en_passant, None);
-        assert_eq!(board.half_moves, 1);
-        assert_eq!(board.full_moves, 11);
-    }
-
-    #[test]
-    fn simple_move() {
-        let mut board = Board::default();
-        board.make_move(Move::coordinate("e2e4"));
-
-        assert_eq!(board.squares[E2], None);
-        assert_eq!(board.squares[E4], Some((WHITE, PAWN)));
-        assert_eq!(board.bitboards[WHITE][PAWN], 0x1000ef00);
-    }
-
-    #[test]
-    fn capture() {
-        let mut board =
-            Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
-        board.make_move(Move::coordinate("e4d5"));
-
-        assert_eq!(board.squares[E4], None);
-        assert_eq!(board.squares[D5], Some((WHITE, PAWN)));
-
-        assert_eq!(board.bitboards[WHITE][PAWN], 0x80000ef00);
-        assert_eq!(board.bitboards[BLACK][PAWN], 0xf7000000000000);
-    }
-
-    #[test]
-    fn promote() {
-        let mut board = Board::from_fen("8/3P4/8/8/8/8/8/8 w - - 0 1").unwrap();
-        board.make_move(Move::coordinate("d7d8q"));
-
-        assert_eq!(board.squares[D7], None);
-        assert_eq!(board.squares[D8], Some((WHITE, QUEEN)));
-
-        assert_eq!(board.bitboards[WHITE][PAWN], 0x0);
-        assert_eq!(board.bitboards[WHITE][QUEEN], 0x800000000000000);
-
-        let mut board = Board::from_fen("3q4/4P3/8/8/8/8/8/8 w - - 0 1").unwrap();
-        board.make_move(Move::coordinate("e7d8n"));
-
-        assert_eq!(board.squares[E7], None);
-        assert_eq!(board.squares[D8], Some((WHITE, KNIGHT)));
-
-        assert_eq!(board.bitboards[WHITE][PAWN], 0x0);
-        assert_eq!(board.bitboards[WHITE][KNIGHT], 0x800000000000000);
-        assert_eq!(board.bitboards[BLACK][QUEEN], 0x0);
-    }
-
-    #[test]
-    fn castle() {
-        let mut board = Board::from_fen("8/8/8/8/8/8/8/4K2R w - - 0 1").unwrap();
-        board.make_move(Move::coordinate("e1g1"));
-        assert_eq!(board.squares[E1], None);
-        assert_eq!(board.squares[F1], Some((WHITE, ROOK)));
-        assert_eq!(board.squares[G1], Some((WHITE, KING)));
-        assert_eq!(board.squares[H1], None);
-        assert_eq!(board.bitboards[WHITE][KING], 0x40);
-        assert_eq!(board.bitboards[WHITE][ROOK], 0x20);
-
-        let mut board = Board::from_fen("8/8/8/8/8/8/8/R3K3 w - - 0 1").unwrap();
-        board.make_move(Move::coordinate("e1c1"));
-        assert_eq!(board.squares[E1], None);
-        assert_eq!(board.squares[D1], Some((WHITE, ROOK)));
-        assert_eq!(board.squares[C1], Some((WHITE, KING)));
-        assert_eq!(board.squares[A1], None);
-        assert_eq!(board.bitboards[WHITE][KING], 0x4);
-        assert_eq!(board.bitboards[WHITE][ROOK], 0x8);
-
-        let mut board = Board::from_fen("4k2r/8/8/8/8/8/8/8 b - - 0 1").unwrap();
-        board.make_move(Move::coordinate("e8g8"));
-        assert_eq!(board.squares[E8], None);
-        assert_eq!(board.squares[F8], Some((BLACK, ROOK)));
-        assert_eq!(board.squares[G8], Some((BLACK, KING)));
-        assert_eq!(board.squares[H8], None);
-        assert_eq!(board.bitboards[BLACK][KING], 0x4000000000000000);
-        assert_eq!(board.bitboards[BLACK][ROOK], 0x2000000000000000);
-
-        let mut board = Board::from_fen("r3k3/8/8/8/8/8/8/8 b - - 0 1").unwrap();
-        board.make_move(Move::coordinate("e8c8"));
-        assert_eq!(board.squares[E8], None);
-        assert_eq!(board.squares[D8], Some((BLACK, ROOK)));
-        assert_eq!(board.squares[C8], Some((BLACK, KING)));
-        assert_eq!(board.squares[A8], None);
-        assert_eq!(board.bitboards[BLACK][KING], 0x400000000000000);
-        assert_eq!(board.bitboards[BLACK][ROOK], 0x800000000000000);
-    }
-
-    #[test]
-    fn en_passant() {
-        let mut board = Board::from_fen("8/3p4/8/4P3/8/8/8/8 b - - 0 1").unwrap();
-        board.make_move(Move::coordinate("d7d5"));
-        board.make_move(Move::coordinate("e5d6"));
-        assert_eq!(board.squares[D5], None);
-        assert_eq!(board.squares[D6], Some((WHITE, PAWN)));
-        assert_eq!(board.bitboards[WHITE][PAWN], 0x80000000000);
-        assert_eq!(board.bitboards[BLACK][PAWN], 0x0);
-
-        let mut board = Board::from_fen("8/8/8/8/3p4/8/4P3/8 w - - 0 1").unwrap();
-        board.make_move(Move::coordinate("e2e4"));
-        board.make_move(Move::coordinate("d4e3"));
-        assert_eq!(board.squares[E4], None);
-        assert_eq!(board.squares[E3], Some((BLACK, PAWN)));
-        assert_eq!(board.bitboards[BLACK][PAWN], 0x100000);
-        assert_eq!(board.bitboards[WHITE][PAWN], 0x0);
-    }
-
-    #[test]
-    fn legal_knight_moves() {
-        let board = Board::from_fen("8/8/8/8/8/8/8/N7 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(A1));
-        assert!(moves.contains(&Move::new(A1, B3)));
-        assert!(moves.contains(&Move::new(A1, C2)));
-        assert_eq!(moves.len(), 2);
-
-        let board = Board::default();
-        let moves = board.pseudo_legal_moves_square(Square(B1));
-        assert!(moves.contains(&Move::new(B1, A3)));
-        assert!(moves.contains(&Move::new(B1, C3)));
-        assert_eq!(moves.len(), 2);
-
-        let board = Board::from_fen("8/8/2K1K3/1K3K2/3N4/1K3K2/2K1K3/8 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D4));
-        assert!(moves.is_empty());
-    }
-
-    #[test]
-    fn legal_king_moves() {
-        let board = Board::from_fen("8/8/8/8/8/8/8/K7 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(A1));
-        assert!(moves.contains(&Move::new(A1, A2)));
-        assert!(moves.contains(&Move::new(A1, B1)));
-        assert!(moves.contains(&Move::new(A1, B2)));
-        assert_eq!(moves.len(), 3);
-
-        let board = Board::default();
-        let moves = board.pseudo_legal_moves_square(Square(E1));
-        assert!(moves.is_empty());
-
-        let board = Board::from_fen("8/8/8/8/8/8/3PPP2/R3K2R w KQ - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(E1));
-        assert!(moves.contains(&Move::new(E1, C1)));
-        assert!(moves.contains(&Move::new(E1, G1)));
-        assert_eq!(moves.len(), 4);
-
-        let board = Board::from_fen("2r5/8/8/8/8/8/3PPP2/R3K2R w KQ - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(E1));
-        assert!(moves.contains(&Move::new(E1, G1)));
-        assert_eq!(moves.len(), 3);
-    }
-
-    #[test]
-    fn legal_white_pawn_moves() {
-        // Starting square
-        let board = Board::default();
-        let moves = board.pseudo_legal_moves_square(Square(E2));
-        assert!(moves.contains(&Move::new(E2, E3)));
-        assert!(moves.contains(&Move::new(E2, E4)));
-        assert_eq!(moves.len(), 2);
-
-        // Normal move
-        let board = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/3P4/PPP1PPPP/RNBQKBNR b KQkq - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D3));
-        assert!(moves.contains(&Move::new(D3, D4)));
-        assert_eq!(moves.len(), 1);
-
-        // Attack
-        let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(E4));
-        assert!(moves.contains(&Move::new(E4, D5)));
-        assert!(moves.contains(&Move::new(E4, E5)));
-        assert_eq!(moves.len(), 2);
-
-        // Can't attack forward
-        let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(E4));
-        assert!(moves.is_empty());
-
-        // Normal promotion
-        let board = Board::from_fen("8/3P4/8/8/8/8/8/8 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D7));
-        assert!(moves.contains(&Move::promotion(D7, D8, BISHOP)));
-        assert!(moves.contains(&Move::promotion(D7, D8, KNIGHT)));
-        assert!(moves.contains(&Move::promotion(D7, D8, QUEEN)));
-        assert!(moves.contains(&Move::promotion(D7, D8, ROOK)));
-        assert_eq!(moves.len(), 4);
-
-        // Attacking promotion
-        let board = Board::from_fen("4q3/3P4/8/8/8/8/8/8 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D7));
-        assert!(moves.contains(&Move::promotion(D7, D8, BISHOP)));
-        assert!(moves.contains(&Move::promotion(D7, D8, KNIGHT)));
-        assert!(moves.contains(&Move::promotion(D7, D8, QUEEN)));
-        assert!(moves.contains(&Move::promotion(D7, D8, ROOK)));
-        assert!(moves.contains(&Move::promotion(D7, E8, BISHOP)));
-        assert!(moves.contains(&Move::promotion(D7, E8, KNIGHT)));
-        assert!(moves.contains(&Move::promotion(D7, E8, QUEEN)));
-        assert!(moves.contains(&Move::promotion(D7, E8, ROOK)));
-        assert_eq!(moves.len(), 8);
-
-        // En passant
-        let board = Board::from_fen("rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(E5));
-        assert!(moves.contains(&Move::new(E5, D6)));
-        assert!(moves.contains(&Move::new(E5, E6)));
-        assert!(moves.contains(&Move::new(E5, F6)));
-        assert_eq!(moves.len(), 3);
-    }
-
-    #[test]
-    fn legal_black_pawn_moves() {
-        // Starting square
-        let board = Board::default();
-        let moves = board.pseudo_legal_moves_square(Square(E7));
-        assert!(moves.contains(&Move::new(E7, E5)));
-        assert!(moves.contains(&Move::new(E7, E6)));
-        assert_eq!(moves.len(), 2);
-
-        // Normal move
-        let board = Board::from_fen("rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(E6));
-        assert!(moves.contains(&Move::new(E6, E5)));
-        assert_eq!(moves.len(), 1);
-
-        // Attack
-        let board = Board::from_fen("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D5));
-        assert!(moves.contains(&Move::new(D5, D4)));
-        assert!(moves.contains(&Move::new(D5, E4)));
-        assert_eq!(moves.len(), 2);
-
-        // Normal promotion
-        let board = Board::from_fen("8/8/8/8/8/8/3p4/8 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D2));
-        assert!(moves.contains(&Move::promotion(D2, D1, BISHOP)));
-        assert!(moves.contains(&Move::promotion(D2, D1, KNIGHT)));
-        assert!(moves.contains(&Move::promotion(D2, D1, QUEEN)));
-        assert!(moves.contains(&Move::promotion(D2, D1, ROOK)));
-        assert_eq!(moves.len(), 4);
-
-        // Attacking promotion
-        let board = Board::from_fen("8/8/8/8/8/8/3p4/4Q3 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D2));
-        assert!(moves.contains(&Move::promotion(D2, D1, BISHOP)));
-        assert!(moves.contains(&Move::promotion(D2, D1, KNIGHT)));
-        assert!(moves.contains(&Move::promotion(D2, D1, QUEEN)));
-        assert!(moves.contains(&Move::promotion(D2, D1, ROOK)));
-        assert!(moves.contains(&Move::promotion(D2, E1, BISHOP)));
-        assert!(moves.contains(&Move::promotion(D2, E1, KNIGHT)));
-        assert!(moves.contains(&Move::promotion(D2, E1, QUEEN)));
-        assert!(moves.contains(&Move::promotion(D2, E1, ROOK)));
-        assert_eq!(moves.len(), 8);
-
-        // TODO: Promotion
-    }
-
-    #[test]
-    fn legal_rook_moves() {
-        let board = Board::default();
-        let moves = board.pseudo_legal_moves_square(Square(A1));
-        assert!(moves.is_empty());
-
-        let board = Board::from_fen("8/3r4/8/8/3R3q/8/3B4/8 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D4));
-        assert!(moves.contains(&Move::new(D4, A4)));
-        assert!(moves.contains(&Move::new(D4, D3)));
-        assert!(moves.contains(&Move::new(D4, D7)));
-        assert!(moves.contains(&Move::new(D4, H4)));
-        assert_eq!(moves.len(), 11);
-    }
-
-    #[test]
-    fn legal_bishop_moves() {
-        let board = Board::default();
-        let moves = board.pseudo_legal_moves_square(Square(C1));
-        assert!(moves.is_empty());
-
-        let board = Board::from_fen("8/6n1/1Q6/8/3B4/8/1r6/8 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D4));
-        assert!(moves.contains(&Move::new(D4, B2)));
-        assert!(moves.contains(&Move::new(D4, C5)));
-        assert!(moves.contains(&Move::new(D4, G1)));
-        assert!(moves.contains(&Move::new(D4, G7)));
-        assert_eq!(moves.len(), 9);
-    }
-
-    #[test]
-    fn legal_queen_moves() {
-        let board = Board::default();
-        let moves = board.pseudo_legal_moves_square(Square(D1));
-        assert!(moves.is_empty());
-
-        let board = Board::from_fen("8/6n1/1R6/3K4/3Q2p1/8/1r6/8 w - - 0 1").unwrap();
-        let moves = board.pseudo_legal_moves_square(Square(D4));
-        assert!(moves.contains(&Move::new(D4, A4)));
-        assert!(moves.contains(&Move::new(D4, B2)));
-        assert!(moves.contains(&Move::new(D4, C5)));
-        assert!(moves.contains(&Move::new(D4, D1)));
-        assert!(moves.contains(&Move::new(D4, G1)));
-        assert!(moves.contains(&Move::new(D4, G4)));
-        assert!(moves.contains(&Move::new(D4, G7)));
-        assert_eq!(moves.len(), 18);
-    }
-
-    #[test]
     fn unmake_move() {
         let mut board = Board::default();
-        board.make_move(Move::coordinate("e2e4"));
+        board.make_move(&Move::coordinate("e2e4"));
         board.unmake_move();
         assert_eq!(board, Board::default());
 
         let mut board = Board::default();
-        board.make_move(Move::coordinate("e2e4"));
-        board.make_move(Move::coordinate("e7e4"));
+        board.make_move(&Move::coordinate("e2e4"));
+        board.make_move(&Move::coordinate("e7e4"));
         board.unmake_move();
         board.unmake_move();
         assert_eq!(board, Board::default());

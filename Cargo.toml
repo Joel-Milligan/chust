@@ -6,3 +6,10 @@ edition = "2021"
 [dependencies]
 bitvec = "1"
 thiserror="1"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "perft"
+harness = false

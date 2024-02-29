@@ -29,22 +29,25 @@ impl Engine<'_> {
     }
 
     fn evaluate(&self, position: &Board) -> i32 {
-        position.squares.into_iter()
-            .flatten()
-            .map(|(colour, piece)| {
-                let value = match piece {
-                    PAWN => 1,
-                    KNIGHT => 3,
-                    BISHOP => 3,
-                    ROOK => 5,
-                    QUEEN => 9,
-                    _ => 0,
-                };
+        (A1..=H8)
+            .into_iter()
+            .map(|square| {
+                if let Some((colour, piece)) = position.get_piece_at_square(square) {
+                    let value = match piece {
+                        PAWN => 1,
+                        KNIGHT | BISHOP => 3,
+                        ROOK => 5,
+                        QUEEN => 9,
+                        _ => 0,
+                    };
 
-                if colour == self.board.active_colour {
-                    value
+                    if colour == self.board.active_colour {
+                        value
+                    } else {
+                        -value
+                    }
                 } else {
-                    -value
+                    0
                 }
             })
             .sum()

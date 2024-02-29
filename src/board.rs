@@ -156,7 +156,6 @@ impl Board {
 
     fn pseudo_legal_moves(&self) -> Vec<Move> {
         (A1..=H8)
-            .into_iter()
             .map(|square| (square, self.get_piece_at_square(square)))
             .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == self.active_colour))
             .flat_map(|(square, _)| self.pseudo_legal_moves_square(square))
@@ -341,7 +340,6 @@ impl Board {
 
     pub fn attacked_squares(&self, attacking_colour: usize) -> u64 {
         (A1..=H8)
-            .into_iter()
             .map(|square| (square, self.get_piece_at_square(square)))
             .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == attacking_colour))
             .map(|(square, piece)| match piece.unwrap().1 {

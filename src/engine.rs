@@ -30,7 +30,6 @@ impl Engine<'_> {
 
     fn evaluate(&self, position: &Board) -> i32 {
         (A1..=H8)
-            .into_iter()
             .map(|square| {
                 if let Some((colour, piece)) = position.get_piece_at_square(square) {
                     let value = match piece {

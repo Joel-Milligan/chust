@@ -4,7 +4,6 @@ Chess in rust
 
 ## Tasks
 
-- Use only bitboards
 - Basic AI
 - UCI
 - Pre-compute lookup tables for moves

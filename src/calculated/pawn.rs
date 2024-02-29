@@ -74,36 +74,36 @@ mod tests {
 
     #[test]
     fn starting_moves() {
-        assert_eq!(PAWN_MOVES[WHITE][E2], 0x10100000);
-        assert_eq!(PAWN_MOVES[BLACK][D7], 0x80800000000);
+        assert_eq!(PAWN_MOVES[WHITE][E2], 0x1010_0000);
+        assert_eq!(PAWN_MOVES[BLACK][D7], 0x0808_0000_0000);
     }
 
     #[test]
     fn normal_moves() {
-        assert_eq!(PAWN_MOVES[WHITE][E3], 0x10000000);
-        assert_eq!(PAWN_MOVES[BLACK][D6], 0x800000000);
+        assert_eq!(PAWN_MOVES[WHITE][E3], 0x1000_0000);
+        assert_eq!(PAWN_MOVES[BLACK][D6], 0x0008_0000_0000);
     }
 
     #[test]
     fn full_attack_set() {
-        assert_eq!(PAWN_ATTACKS[WHITE][E4], 0x2800000000);
-        assert_eq!(PAWN_ATTACKS[BLACK][D5], 0x14000000);
+        assert_eq!(PAWN_ATTACKS[WHITE][E4], 0x0028_0000_0000);
+        assert_eq!(PAWN_ATTACKS[BLACK][D5], 0x1400_0000);
     }
 
     #[test]
     fn white_edges() {
         assert_eq!(PAWN_ATTACKS[WHITE][A2], 0x20000);
-        assert_eq!(PAWN_ATTACKS[WHITE][H2], 0x400000);
-        assert_eq!(PAWN_ATTACKS[WHITE][A7], 0x200000000000000);
-        assert_eq!(PAWN_ATTACKS[WHITE][H7], 0x4000000000000000);
+        assert_eq!(PAWN_ATTACKS[WHITE][H2], 0x0040_0000);
+        assert_eq!(PAWN_ATTACKS[WHITE][A7], 0x0200_0000_0000_0000);
+        assert_eq!(PAWN_ATTACKS[WHITE][H7], 0x4000_0000_0000_0000);
     }
 
     #[test]
     fn black_edges() {
         assert_eq!(PAWN_ATTACKS[BLACK][A2], 0x2);
         assert_eq!(PAWN_ATTACKS[BLACK][H2], 0x40);
-        assert_eq!(PAWN_ATTACKS[BLACK][A7], 0x20000000000);
-        assert_eq!(PAWN_ATTACKS[BLACK][H7], 0x400000000000);
+        assert_eq!(PAWN_ATTACKS[BLACK][A7], 0x0200_0000_0000);
+        assert_eq!(PAWN_ATTACKS[BLACK][H7], 0x4000_0000_0000);
     }
 
     #[test]

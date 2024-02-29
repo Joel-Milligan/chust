@@ -35,33 +35,33 @@ mod tests {
 
     #[test]
     fn full_move_set() {
-        assert_eq!(KNIGHT_MOVES[D3], 0x1422002214);
-        assert_eq!(KNIGHT_MOVES[E4], 0x284400442800);
-        assert_eq!(KNIGHT_MOVES[F5], 0x50880088500000);
-        assert_eq!(KNIGHT_MOVES[C6], 0xa1100110a000000);
+        assert_eq!(KNIGHT_MOVES[D3], 0x0014_2200_2214);
+        assert_eq!(KNIGHT_MOVES[E4], 0x2844_0044_2800);
+        assert_eq!(KNIGHT_MOVES[F5], 0x0050_8800_8850_0000);
+        assert_eq!(KNIGHT_MOVES[C6], 0x0a11_0011_0a00_0000);
     }
 
     #[test]
     fn vertical_edges() {
-        assert_eq!(KNIGHT_MOVES[A4], 0x20400040200);
-        assert_eq!(KNIGHT_MOVES[B4], 0x50800080500);
-        assert_eq!(KNIGHT_MOVES[G4], 0xa0100010a000);
-        assert_eq!(KNIGHT_MOVES[H4], 0x402000204000);
+        assert_eq!(KNIGHT_MOVES[A4], 0x0204_0004_0200);
+        assert_eq!(KNIGHT_MOVES[B4], 0x0508_0008_0500);
+        assert_eq!(KNIGHT_MOVES[G4], 0xa010_0010_a000);
+        assert_eq!(KNIGHT_MOVES[H4], 0x4020_0020_4000);
     }
 
     #[test]
     fn horizontal_edges() {
-        assert_eq!(KNIGHT_MOVES[E1], 0x284400);
-        assert_eq!(KNIGHT_MOVES[E2], 0x28440044);
-        assert_eq!(KNIGHT_MOVES[E7], 0x4400442800000000);
-        assert_eq!(KNIGHT_MOVES[E8], 0x44280000000000);
+        assert_eq!(KNIGHT_MOVES[E1], 0x0028_4400);
+        assert_eq!(KNIGHT_MOVES[E2], 0x2844_0044);
+        assert_eq!(KNIGHT_MOVES[E7], 0x4400_4428_0000_0000);
+        assert_eq!(KNIGHT_MOVES[E8], 0x0044_2800_0000_0000);
     }
 
     #[test]
     fn corners() {
         assert_eq!(KNIGHT_MOVES[A1], 0x20400);
-        assert_eq!(KNIGHT_MOVES[H1], 0x402000);
-        assert_eq!(KNIGHT_MOVES[A8], 0x4020000000000);
-        assert_eq!(KNIGHT_MOVES[H8], 0x20400000000000);
+        assert_eq!(KNIGHT_MOVES[H1], 0x0040_2000);
+        assert_eq!(KNIGHT_MOVES[A8], 0x0004_0200_0000_0000);
+        assert_eq!(KNIGHT_MOVES[H8], 0x0020_4000_0000_0000);
     }
 }

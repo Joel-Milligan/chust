@@ -56,7 +56,7 @@ impl Display for Board {
                     if piece.0 == WHITE {
                         write!(f, "{} ", kind.to_uppercase())?;
                     } else {
-                        write!(f, "{} ", kind)?;
+                        write!(f, "{kind} ")?;
                     }
                 } else {
                     write!(f, ". ")?;
@@ -80,7 +80,7 @@ impl Board {
         }
 
         let mut idx = 0;
-        for ch in fields[0].split('/').rev().flat_map(|rank| rank.chars()) {
+        for ch in fields[0].split('/').rev().flat_map(str::chars) {
             if ch.is_numeric() {
                 let empty_squares = ch.to_digit(10).ok_or(FenError)?;
                 for i in idx..(idx + empty_squares) {
@@ -424,12 +424,12 @@ impl Board {
 
             let perft = self.perft(depth - 1);
             nodes += perft;
-            println!("{} {}", mv, perft);
+            println!("{mv} {perft}");
 
             self.unmake_move();
         }
 
-        println!("\n{}", nodes);
+        println!("\n{nodes}");
     }
 }
 

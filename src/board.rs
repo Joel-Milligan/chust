@@ -62,7 +62,7 @@ impl Display for Board {
                     write!(f, ". ")?;
                 }
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         write!(f, "  a b c d e f g h")
     }
@@ -321,10 +321,10 @@ impl Board {
         if piece == PAWN && self.en_passant.is_some_and(|ep| mv.destination.0 == ep) {
             if colour == WHITE {
                 self.squares[mv.destination.0 - 8] = None;
-                self.bitboards[BLACK][PAWN] ^= 1 << mv.destination.0 - 8;
+                self.bitboards[BLACK][PAWN] ^= 1 << (mv.destination.0 - 8);
             } else {
                 self.squares[mv.destination.0 + 8] = None;
-                self.bitboards[WHITE][PAWN] ^= 1 << mv.destination.0 + 8;
+                self.bitboards[WHITE][PAWN] ^= 1 << (mv.destination.0 + 8);
             }
         }
 

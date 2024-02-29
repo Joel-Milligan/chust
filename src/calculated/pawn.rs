@@ -21,8 +21,8 @@ pub fn generate_pawn_moves(square: usize, blockers: u64, colour: usize) -> u64 {
 static PAWN_MOVES: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
     let mut pawn_moves = [[0; 64]; 2];
 
-    for side in WHITE..=BLACK {
-        for square in A2..=H7 {
+    for (side, item) in pawn_moves.iter_mut().enumerate().take(BLACK + 1) {
+        for (square, mv) in item.iter_mut().enumerate().take(H7 + 1).skip(A2) {
             let bitboard = 1 << square;
             let mut moves = 0;
 
@@ -38,7 +38,7 @@ static PAWN_MOVES: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
                 }
             }
 
-            pawn_moves[side][square] = moves;
+            *mv = moves;
         }
     }
 
@@ -48,8 +48,8 @@ static PAWN_MOVES: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
 pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
     let mut pawn_attacks = [[0; 64]; 2];
 
-    for side in WHITE..=BLACK {
-        for square in A2..=H7 {
+    for (side, item) in pawn_attacks.iter_mut().enumerate().take(BLACK + 1) {
+        for (square, mv) in item.iter_mut().enumerate().take(H7 + 1).skip(A2) {
             let bitboard = 1 << square;
             let mut attacks = 0;
 
@@ -61,7 +61,7 @@ pub static PAWN_ATTACKS: LazyLock<[[u64; 64]; 2]> = LazyLock::new(|| {
                 attacks |= filter(bitboard, vec![A_FILE]) >> 9;
             }
 
-            pawn_attacks[side][square] = attacks;
+            *mv = attacks;
         }
     }
 

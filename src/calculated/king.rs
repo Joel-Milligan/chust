@@ -39,7 +39,7 @@ pub fn generate_king_moves(square: usize, blockers: u64, colour: usize, attacked
 pub static KING_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
     let mut king_moves = [0; 64];
 
-    for square in A1..=H8 {
+    for (square, mv) in king_moves.iter_mut().enumerate().take(H8 + 1) {
         let bitboard = 1 << square;
         let mut moves = 0;
 
@@ -53,7 +53,7 @@ pub static KING_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
         moves |= filter(bitboard, vec![A_FILE, FIRST_RANK]) >> 9;
         moves |= filter(bitboard, vec![A_FILE]) >> 1;
 
-        king_moves[square] = moves;
+        *mv = moves;
     }
 
     king_moves

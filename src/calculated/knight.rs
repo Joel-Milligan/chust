@@ -10,11 +10,10 @@ pub fn generate_knight_moves(square: usize) -> u64 {
 static KNIGHT_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
     let mut knight_moves = [0; 64];
 
-    for square in A1..=H8 {
+    for (square, mv) in knight_moves.iter_mut().enumerate().take(H8 + 1) {
         let bitboard = 1 << square;
         let mut attacks = 0;
 
-        // All knight moves starting from NNW going clockwise
         attacks |= filter(bitboard, vec![A_FILE, SEVENTH_RANK, EIGHTH_RANK]) << 15;
         attacks |= filter(bitboard, vec![H_FILE, SEVENTH_RANK, EIGHTH_RANK]) << 17;
         attacks |= filter(bitboard, vec![G_FILE, H_FILE, EIGHTH_RANK]) << 10;
@@ -24,7 +23,7 @@ static KNIGHT_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
         attacks |= filter(bitboard, vec![A_FILE, B_FILE, FIRST_RANK]) >> 10;
         attacks |= filter(bitboard, vec![A_FILE, B_FILE, EIGHTH_RANK]) << 6;
 
-        knight_moves[square] = attacks;
+        *mv = attacks;
     }
 
     knight_moves

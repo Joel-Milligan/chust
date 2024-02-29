@@ -30,7 +30,7 @@ impl Engine<'_> {
 
     fn evaluate(&self, position: &Board) -> i32 {
         position.squares.into_iter()
-            .filter_map(|s| s)
+            .flatten()
             .map(|(colour, piece)| {
                 let value = match piece {
                     PAWN => 1,
@@ -47,6 +47,6 @@ impl Engine<'_> {
                     -value
                 }
             })
-            .fold(0, |evaluation, value| evaluation + value)
+            .sum()
     }
 }

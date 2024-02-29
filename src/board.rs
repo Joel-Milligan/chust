@@ -147,9 +147,7 @@ impl Board {
             .filter(|candidate| {
                 let mut board = self.clone();
                 board.make_move(candidate);
-                !board.pseudo_legal_moves().into_iter().any(|mv| {
-                    board.get_piece_at_square(mv.destination.0) == Some((self.active_colour, KING))
-                })
+                board.attacked(board.active_colour) & board.pieces[self.active_colour][KING] == 0
             })
             .collect()
     }
@@ -190,7 +188,7 @@ impl Board {
                 square,
                 blockers,
                 colour,
-                self.attacked_squares(opponent_colour),
+                self.attacked(opponent_colour),
                 self.castling,
             ),
             KNIGHT => generate_knight_moves(square),
@@ -338,7 +336,7 @@ impl Board {
         }
     }
 
-    pub fn attacked_squares(&self, attacking_colour: usize) -> u64 {
+    pub fn attacked(&self, attacking_colour: usize) -> u64 {
         (A1..=H8)
             .map(|square| (square, self.get_piece_at_square(square)))
             .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == attacking_colour))

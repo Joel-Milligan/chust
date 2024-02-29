@@ -13,3 +13,6 @@ criterion = "0.5"
 [[bench]]
 name = "perft"
 harness = false
+
+[profile.test]
+opt-level = 3

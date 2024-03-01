@@ -7,3 +7,5 @@ pub mod bitboards;
 mod calculated;
 mod constants;
 pub mod square;
+pub mod uci;
+pub mod perftree;

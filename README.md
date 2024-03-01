@@ -4,8 +4,8 @@ Chess in rust
 
 ## Tasks
 
-- Basic AI
 - UCI
+- Basic AI
 - Pre-compute lookup tables for moves
 - Algebraic notation
 - PGN

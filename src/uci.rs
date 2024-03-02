@@ -20,12 +20,14 @@ impl Default for Uci {
 
 impl Uci {
     pub fn new() -> Uci {
-        Uci { engine: Engine::new() }
+        Uci {
+            engine: Engine::new(),
+        }
     }
 
     pub fn start(&mut self, args: Vec<String>) -> Result<(), std::io::Error> {
         if args.len() > 1 {
-            return self.command(args[1..].to_vec())
+            return self.command(args[1..].to_vec());
         }
 
         let mut command = String::new();
@@ -47,26 +49,40 @@ impl Uci {
                 "ucinewgame" => {
                     self.engine.board = Board::default();
                     println!("readyok")
-                },
+                }
                 "position" => {
                     if let Some(pos) = tokens.next() {
                         if pos == "startpos" {
                             self.engine.board = Board::default();
-                        } else if let Ok(game) = Board::from_fen(&pos) {
-                            self.engine.board = game;
+                        } else if pos == "fen" {
+                            let fen = tokens
+                                .clone()
+                                .take_while(|tk| tk != "moves")
+                                .collect::<Vec<_>>()
+                                .join(" ");
+                            self.engine.board = Board::from_fen(&fen).unwrap();
                         } else {
                             return Ok(());
                         }
 
-                        // Rest of tokens are moves
-                        for mv in tokens {
-                            self.engine.board.make_move(&Move::coordinate(&mv))
+                        if tokens.next() == Some("moves".to_string()) {
+                            for mv in tokens {
+                                self.engine.board.make_move(&Move::coordinate(&mv));
+                            }
                         }
                     }
-                },
+                }
                 "go" => {
                     if let Some(tk) = tokens.next() {
                         match tk.as_str() {
+                            "depth" => {
+                                if let Some(depth) = tokens.next() {
+                                    if let Ok(depth) = depth.parse::<usize>() {
+                                        let mv = self.engine.start_search(depth);
+                                        println!("bestmove {mv}");
+                                    }
+                                }
+                            }
                             "evaluate" => {
                                 println!("{}", self.engine.evaluate(&self.engine.board))
                             }
@@ -87,11 +103,11 @@ impl Uci {
                                         self.engine.board.divide(depth);
                                     }
                                 }
-                            },
+                            }
                             _ => {}
                         }
                     }
-                },
+                }
                 "quit" => return Ok(()),
                 _ => {}
             }

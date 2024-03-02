@@ -2,13 +2,26 @@ use crate::board::Board;
 use crate::constants::*;
 use crate::piece_move::Move;
 
-pub struct Engine<'a> {
-    board: &'a Board
+const KING_VALUE: f64 = 200.0;
+const QUEEN_VALUE: f64 = 9.0;
+const ROOK_VALUE: f64 = 5.0;
+const BISHOP_VALUE: f64 = 3.0;
+const KNIGHT_VALUE: f64 = 3.0;
+const PAWN_VALUE: f64 = 1.0;
+
+pub struct Engine {
+    pub board: Board
 }
 
-impl Engine<'_> {
-    pub fn new(board: &Board) -> Engine {
-        Engine { board }
+impl Default for Engine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Engine {
+    pub fn new() -> Engine {
+        Engine { board: Board::default() }
     }
 
     pub fn generate_move(&mut self) -> Move {
@@ -23,32 +36,20 @@ impl Engine<'_> {
                 test_board.unmake_move();
                 (eval, mv)
             })
-            .max_by(|x, y| x.0.cmp(&y.0))
+            .max_by(|x, y| x.0.total_cmp(&y.0))
             .unwrap()
             .1
     }
 
-    fn evaluate(&self, position: &Board) -> i32 {
-        (A1..=H8)
-            .map(|square| {
-                if let Some((colour, piece)) = position.get_piece_at_square(square) {
-                    let value = match piece {
-                        PAWN => 1,
-                        KNIGHT | BISHOP => 3,
-                        ROOK => 5,
-                        QUEEN => 9,
-                        _ => 0,
-                    };
+    pub fn evaluate(&self, position: &Board) -> f64 {
+        let friendly_pieces = position.pieces[position.active_colour];
+        let opponent_pieces = position.pieces[!position.active_colour & 1];
 
-                    if colour == self.board.active_colour {
-                        value
-                    } else {
-                        -value
-                    }
-                } else {
-                    0
-                }
-            })
-            .sum()
+        KING_VALUE * (friendly_pieces[KING].count_ones() as f64 - opponent_pieces[KING].count_ones() as f64) +
+        QUEEN_VALUE * (friendly_pieces[QUEEN].count_ones() as f64 - opponent_pieces[QUEEN].count_ones() as f64) +
+        ROOK_VALUE * (friendly_pieces[ROOK].count_ones() as f64 - opponent_pieces[ROOK].count_ones() as f64) +
+        BISHOP_VALUE * (friendly_pieces[BISHOP].count_ones() as f64 - opponent_pieces[BISHOP].count_ones() as f64) +
+        KNIGHT_VALUE * (friendly_pieces[KNIGHT].count_ones() as f64 - opponent_pieces[KNIGHT].count_ones() as f64) +
+        PAWN_VALUE * (friendly_pieces[PAWN].count_ones() as f64 - opponent_pieces[PAWN].count_ones() as f64)
     }
 }

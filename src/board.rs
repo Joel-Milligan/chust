@@ -19,7 +19,7 @@ pub struct FenError;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Board {
-    pieces: [[u64; 6]; 2],
+    pub pieces: [[u64; 6]; 2],
     pub active_colour: usize,
     castling: u8,
     en_passant: Option<usize>,

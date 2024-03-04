@@ -78,7 +78,8 @@ impl Uci {
                             "depth" => {
                                 if let Some(depth) = tokens.next() {
                                     if let Ok(depth) = depth.parse::<usize>() {
-                                        let mv = self.engine.start_search(depth);
+                                        let (mv, eval) = self.engine.start_search(depth);
+                                        println!("info depth {depth} score cp {eval} pv {mv}");
                                         println!("bestmove {mv}");
                                     }
                                 }
@@ -108,7 +109,7 @@ impl Uci {
                         }
                     }
                 }
-                "quit" => return Ok(()),
+                "quit" => std::process::exit(0),
                 _ => {}
             }
         }

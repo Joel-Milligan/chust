@@ -50,8 +50,8 @@ impl Engine {
                     - opponent_pieces[PAWN].count_ones() as f64)
     }
 
-    pub fn start_search(&mut self, initial_depth: usize) -> Move {
-        let mut max = f64::MIN;
+    pub fn start_search(&mut self, initial_depth: usize) -> (Move, f64) {
+        let mut max_eval = f64::MIN;
         let mut best_move = Move::new(0, 0);
 
         let moves = self.board.moves();
@@ -60,13 +60,13 @@ impl Engine {
             let eval = -self.negamax(initial_depth);
             self.board.unmake_move();
 
-            if eval > max {
-                max = eval;
+            if eval > max_eval {
+                max_eval = eval;
                 best_move = mv;
             }
         }
 
-        best_move
+        (best_move, max_eval)
     }
 
     fn negamax(&mut self, depth: usize) -> f64 {

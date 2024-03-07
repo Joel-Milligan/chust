@@ -51,22 +51,23 @@ impl Uci {
                     println!("readyok")
                 }
                 "position" => {
-                    if let Some(pos) = tokens.next() {
-                        if pos == "startpos" {
-                            self.engine.board = Board::default();
-                        } else if pos == "fen" {
-                            let fen = tokens
-                                .clone()
-                                .take_while(|tk| tk != "moves")
-                                .collect::<Vec<_>>()
-                                .join(" ");
-                            self.engine.board = Board::from_fen(&fen).unwrap();
-                        } else {
-                            return Ok(());
-                        }
+                    let tokens: Vec<String> = tokens.collect();
+                    if tokens.len() > 0 && tokens[0] == "startpos" {
+                        self.engine.board = Board::default();
 
-                        if tokens.next() == Some("moves".to_string()) {
-                            for mv in tokens {
+                        if tokens.get(1) == Some(&"moves".to_string()) {
+                            let moves = tokens[2..].into_iter();
+                            for mv in moves {
+                                self.engine.board.make_move(&Move::coordinate(&mv));
+                            }
+                        }
+                    } else if tokens.len() >= 7 && tokens[0] == "fen" {
+                        let fen = tokens[1..7].join(" ");
+                        self.engine.board = Board::from_fen(&fen).unwrap();
+
+                        if tokens.get(7) == Some(&"moves".to_string()) {
+                            let moves = tokens[8..].into_iter();
+                            for mv in moves {
                                 self.engine.board.make_move(&Move::coordinate(&mv));
                             }
                         }
@@ -79,10 +80,25 @@ impl Uci {
                                 if let Some(depth) = tokens.next() {
                                     if let Ok(depth) = depth.parse::<usize>() {
                                         let (mv, eval) = self.engine.start_search(depth);
-                                        println!("info depth {depth} score cp {eval} pv {mv}");
+
+                                        if eval > 200.0 {
+                                            println!("info depth {depth} score mate 1 pv {mv}");
+                                        } else {
+                                            println!("info depth {depth} score cp {eval} pv {mv}");
+                                        }
+
                                         println!("bestmove {mv}");
                                     }
                                 }
+                            }
+                            "wtime" => {
+                                let (mv, eval) = self.engine.start_search(3);
+                                if eval > 200.0 {
+                                    println!("info depth 3 score mate 1 pv {mv}");
+                                } else {
+                                    println!("info depth 3 score cp {eval} pv {mv}");
+                                }
+                                println!("bestmove {mv}");
                             }
                             "evaluate" => {
                                 println!("{}", self.engine.evaluate(&self.engine.board))

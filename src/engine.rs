@@ -2,12 +2,12 @@ use crate::board::Board;
 use crate::constants::*;
 use crate::piece_move::Move;
 
-const KING_VALUE: f64 = 200.0;
-const QUEEN_VALUE: f64 = 9.0;
-const ROOK_VALUE: f64 = 5.0;
-const BISHOP_VALUE: f64 = 3.0;
-const KNIGHT_VALUE: f64 = 3.0;
-const PAWN_VALUE: f64 = 1.0;
+const KING_VALUE: f64 = 200.0 * 100.0;
+const QUEEN_VALUE: f64 = 9.0 * 100.0;
+const ROOK_VALUE: f64 = 5.0 * 100.0;
+const BISHOP_VALUE: f64 = 3.0 * 100.0;
+const KNIGHT_VALUE: f64 = 3.0 * 100.0;
+const PAWN_VALUE: f64 = 1.0 * 100.0;
 
 pub struct Engine {
     pub board: Board,
@@ -51,14 +51,18 @@ impl Engine {
     }
 
     pub fn start_search(&mut self, initial_depth: usize) -> (Move, f64) {
-        let mut max_eval = f64::MIN;
+        let mut max_eval = f64::MIN / 2.0;
         let mut best_move = Move::new(0, 0);
 
         let moves = self.board.moves();
         for mv in moves {
+            // println!("{mv}");
+
             self.board.make_move(&mv);
             let eval = -self.negamax(initial_depth);
             self.board.unmake_move();
+
+            // println!("{eval}");
 
             if eval > max_eval {
                 max_eval = eval;
@@ -74,9 +78,14 @@ impl Engine {
             return self.evaluate(&self.board);
         }
 
-        let mut max: f64 = f64::MIN;
+        let mut max: f64 = f64::MIN / 2.0;
 
         let moves = self.board.moves();
+
+        if moves.len() == 0 {
+            return f64::MIN / 2.0;
+        }
+
         for mv in moves {
             self.board.make_move(&mv);
             let eval = -self.negamax(depth - 1);

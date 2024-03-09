@@ -2,13 +2,6 @@ use crate::board::Board;
 use crate::constants::*;
 use crate::piece_move::Move;
 
-const KING_VALUE: f64 = 200.0 * 100.0;
-const QUEEN_VALUE: f64 = 9.0 * 100.0;
-const ROOK_VALUE: f64 = 5.0 * 100.0;
-const BISHOP_VALUE: f64 = 3.0 * 100.0;
-const KNIGHT_VALUE: f64 = 3.0 * 100.0;
-const PAWN_VALUE: f64 = 1.0 * 100.0;
-
 pub struct Engine {
     pub board: Board,
 }
@@ -26,43 +19,32 @@ impl Engine {
         }
     }
 
-    pub fn evaluate(&self, position: &Board) -> f64 {
-        let friendly_pieces = position.pieces[position.active_colour];
-        let opponent_pieces = position.pieces[!position.active_colour & 1];
+    pub fn evaluate(&self, position: &Board) -> i64 {
+        let friend = position.pieces[position.active_colour];
+        let enemy = position.pieces[!position.active_colour & 1];
 
-        KING_VALUE
-            * (friendly_pieces[KING].count_ones() as f64
-                - opponent_pieces[KING].count_ones() as f64)
-            + QUEEN_VALUE
-                * (friendly_pieces[QUEEN].count_ones() as f64
-                    - opponent_pieces[QUEEN].count_ones() as f64)
-            + ROOK_VALUE
-                * (friendly_pieces[ROOK].count_ones() as f64
-                    - opponent_pieces[ROOK].count_ones() as f64)
-            + BISHOP_VALUE
-                * (friendly_pieces[BISHOP].count_ones() as f64
-                    - opponent_pieces[BISHOP].count_ones() as f64)
-            + KNIGHT_VALUE
-                * (friendly_pieces[KNIGHT].count_ones() as f64
-                    - opponent_pieces[KNIGHT].count_ones() as f64)
-            + PAWN_VALUE
-                * (friendly_pieces[PAWN].count_ones() as f64
-                    - opponent_pieces[PAWN].count_ones() as f64)
+        let queens = friend[QUEEN].count_ones() as i64 - enemy[QUEEN].count_ones() as i64;
+        let rooks = friend[ROOK].count_ones() as i64 - enemy[ROOK].count_ones() as i64;
+        let bishops = friend[BISHOP].count_ones() as i64 - enemy[BISHOP].count_ones() as i64;
+        let knights = friend[KNIGHT].count_ones() as i64 - enemy[KNIGHT].count_ones() as i64;
+        let pawns = friend[PAWN].count_ones() as i64 - enemy[PAWN].count_ones() as i64;
+
+        QUEEN_VALUE * queens
+            + ROOK_VALUE * rooks
+            + BISHOP_VALUE * bishops
+            + KNIGHT_VALUE * knights
+            + PAWN_VALUE * pawns
     }
 
-    pub fn start_search(&mut self, initial_depth: usize) -> (Move, f64) {
-        let mut max_eval = f64::MIN / 2.0;
+    pub fn start_search(&mut self, initial_depth: usize) -> (Move, i64) {
+        let mut max_eval = MATED_VALUE;
         let mut best_move = Move::new(0, 0);
 
         let moves = self.board.moves();
         for mv in moves {
-            // println!("{mv}");
-
             self.board.make_move(&mv);
             let eval = -self.negamax(initial_depth);
             self.board.unmake_move();
-
-            // println!("{eval}");
 
             if eval > max_eval {
                 max_eval = eval;
@@ -73,17 +55,20 @@ impl Engine {
         (best_move, max_eval)
     }
 
-    fn negamax(&mut self, depth: usize) -> f64 {
+    fn negamax(&mut self, depth: usize) -> i64 {
         if depth == 0 {
             return self.evaluate(&self.board);
         }
 
-        let mut max: f64 = f64::MIN / 2.0;
+        let mut max: i64 = MATED_VALUE;
 
         let moves = self.board.moves();
 
         if moves.len() == 0 {
-            return f64::MIN / 2.0;
+            if self.board.in_check() {
+                return MATED_VALUE + depth as i64;
+            }
+            return 0;
         }
 
         for mv in moves {

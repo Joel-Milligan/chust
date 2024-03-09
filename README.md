@@ -4,11 +4,13 @@ Chess in rust
 
 ## Tasks
 
-- Fix checkmates in go depth
-- Enough UCI to play on Lichess
 - alpha-beta pruning
-- Look into opening books
-- Look into endgame tablebases
+- Iterative deepening
+- pv line
+- Correctly show mate
+- Enough UCI to play on Lichess
+- Research opening books
+- Research endgame tablebases
 - Pre-compute lookup tables for moves
 - Algebraic notation
 - PGN

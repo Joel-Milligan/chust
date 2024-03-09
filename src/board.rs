@@ -356,6 +356,11 @@ impl Board {
             .unwrap_or(0)
     }
 
+    pub fn in_check(&self) -> bool {
+        let attacked = self.attacked(!self.active_colour & 1);
+        self.pieces[self.active_colour][KING] & attacked != 0
+    }
+
     fn blockers(&self) -> u64 {
         self.pieces
             .into_iter()

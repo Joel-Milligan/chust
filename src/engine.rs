@@ -43,7 +43,7 @@ impl Engine {
         let moves = self.board.moves();
         for mv in moves {
             self.board.make_move(&mv);
-            let eval = -self.negamax(initial_depth);
+            let eval = -self.alpha_beta(MATED_VALUE, i64::MAX, initial_depth);
             self.board.unmake_move();
 
             if eval > max_eval {
@@ -55,12 +55,12 @@ impl Engine {
         (best_move, max_eval)
     }
 
-    fn negamax(&mut self, depth: usize) -> i64 {
+    fn alpha_beta(&mut self, alpha: i64, beta: i64, depth: usize) -> i64 {
         if depth == 0 {
             return self.evaluate(&self.board);
         }
 
-        let mut max: i64 = MATED_VALUE;
+        let mut alpha = alpha;
 
         let moves = self.board.moves();
 
@@ -73,14 +73,18 @@ impl Engine {
 
         for mv in moves {
             self.board.make_move(&mv);
-            let eval = -self.negamax(depth - 1);
+            let score = -self.alpha_beta(-beta, -alpha, depth - 1);
             self.board.unmake_move();
 
-            if eval > max {
-                max = eval;
+            if score >= beta {
+                return beta; //  fail hard beta-cutoff
+            }
+
+            if score > alpha {
+                alpha = score; // alpha acts like max in MiniMax
             }
         }
 
-        max
+        alpha
     }
 }

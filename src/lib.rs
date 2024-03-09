@@ -1,11 +1,12 @@
 #![feature(lazy_cell)]
+#![feature(int_roundings)]
 
-pub mod board;
-pub mod piece_move;
-pub mod engine;
 pub mod bitboards;
+pub mod board;
 mod calculated;
 mod constants;
+pub mod engine;
+pub mod perftree;
+pub mod piece_move;
 pub mod square;
 pub mod uci;
-pub mod perftree;

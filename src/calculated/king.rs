@@ -3,7 +3,13 @@ use std::sync::LazyLock;
 use crate::bitboards::filter;
 use crate::constants::*;
 
-pub fn generate_king_moves(square: usize, blockers: u64, colour: usize, attacked_squares: u64, castling: u8) -> u64 {
+pub fn generate_king_moves(
+    square: usize,
+    blockers: u64,
+    colour: usize,
+    attacked_squares: u64,
+    castling: u8,
+) -> u64 {
     let mut moves = KING_MOVES[square];
 
     // Castling

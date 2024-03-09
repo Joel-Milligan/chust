@@ -1,5 +1,5 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use chust::board::Board;
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 pub fn perft_bench(c: &mut Criterion) {
     let mut board = Board::default();
@@ -8,4 +8,3 @@ pub fn perft_bench(c: &mut Criterion) {
 
 criterion_group!(benches, perft_bench);
 criterion_main!(benches);
-

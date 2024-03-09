@@ -85,9 +85,7 @@ impl Uci {
 
                 let mate = MATED_VALUE.abs() - eval.abs();
                 if mate <= 100 {
-                    // TODO: This is mate in plies, I think, can't test mate in 3 until better
-                    // performance
-                    let mate = depth as i64 - mate;
+                    let mate = (depth as i64 - mate + 1).div_ceil(2);
                     if eval > 0 {
                         println!("info depth {depth} score mate {mate} pv {mv}");
                     } else {

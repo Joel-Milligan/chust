@@ -19,9 +19,9 @@ impl Engine {
         }
     }
 
-    pub fn evaluate(&self, position: &Board) -> i64 {
-        let friend = position.pieces[position.active_colour];
-        let enemy = position.pieces[!position.active_colour & 1];
+    pub fn evaluate(&self) -> i64 {
+        let friend = self.board.pieces[self.board.active_colour];
+        let enemy = self.board.pieces[!self.board.active_colour & 1];
 
         let queens = friend[QUEEN].count_ones() as i64 - enemy[QUEEN].count_ones() as i64;
         let rooks = friend[ROOK].count_ones() as i64 - enemy[ROOK].count_ones() as i64;
@@ -57,14 +57,14 @@ impl Engine {
 
     fn alpha_beta(&mut self, alpha: i64, beta: i64, depth: usize) -> i64 {
         if depth == 0 {
-            return self.evaluate(&self.board);
+            return self.evaluate();
         }
 
         let mut alpha = alpha;
 
         let moves = self.board.moves();
 
-        if moves.len() == 0 {
+        if moves.is_empty() {
             if self.board.in_check() {
                 return MATED_VALUE + depth as i64;
             }
@@ -77,11 +77,48 @@ impl Engine {
             self.board.unmake_move();
 
             if score >= beta {
-                return beta; //  fail hard beta-cutoff
+                return beta;
             }
 
             if score > alpha {
-                alpha = score; // alpha acts like max in MiniMax
+                alpha = score;
+            }
+        }
+
+        alpha
+    }
+
+    fn quiescense(&mut self, alpha: i64, beta: i64) -> i64 {
+        let eval = self.evaluate();
+
+        if eval >= beta {
+            return eval;
+        }
+
+        let mut alpha = alpha;
+
+        if alpha < eval {
+            alpha = eval;
+        }
+
+        let captures = self
+            .board
+            .moves()
+            .into_iter()
+            .filter(|mv| self.board.get_piece_at_square(mv.destination.0).is_some())
+            .collect::<Vec<_>>();
+
+        for capture in captures {
+            self.board.make_move(&capture);
+            let eval = -self.quiescense(-beta, -alpha);
+            self.board.unmake_move();
+
+            if eval > alpha {
+                if eval >= beta {
+                    return beta;
+                }
+
+                alpha = eval;
             }
         }
 

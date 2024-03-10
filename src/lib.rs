@@ -6,7 +6,6 @@ pub mod board;
 mod calculated;
 mod constants;
 pub mod engine;
-pub mod perftree;
 pub mod piece_move;
 pub mod square;
 pub mod uci;

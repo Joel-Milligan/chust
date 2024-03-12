@@ -10,13 +10,7 @@ pub fn invoke(engine: &mut Engine, mut tokens: VecDeque<String>) {
         match tk.as_str() {
             "depth" => depth::invoke(engine, tokens),
             "wtime" => {
-                let (pv, _) = engine.start_search(3);
-                print!("info depth 3 pv ");
-                for mv in &pv {
-                    print!("{mv} ");
-                }
-                println!();
-                println!("bestmove {}", pv.first().unwrap());
+                engine.iterative_deepening(3);
             }
             "evaluate" => {
                 println!("{}", engine.evaluate())

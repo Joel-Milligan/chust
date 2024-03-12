@@ -36,56 +36,69 @@ impl Engine {
             + PAWN_VALUE * pawns
     }
 
-    pub fn start_search(&mut self, initial_depth: usize) -> (Move, i64) {
+    pub fn start_search(&mut self, initial_depth: usize) -> (Vec<Move>, i64) {
         let mut max_eval = MATED_VALUE;
-        let mut best_move = Move::new(0, 0);
+        let mut pv = vec![];
 
         let moves = self.board.moves();
         for mv in moves {
             self.board.make_move(&mv);
-            let eval = -self.alpha_beta(MATED_VALUE, i64::MAX, initial_depth);
+            let (line, neg_eval) =
+                self.alpha_beta(MATED_VALUE, i64::MAX, initial_depth, vec![mv.clone()]);
+            let eval = -neg_eval;
             self.board.unmake_move();
 
             if eval > max_eval {
                 max_eval = eval;
-                best_move = mv;
+                pv = line;
             }
         }
 
-        (best_move, max_eval)
+        (pv, max_eval)
     }
 
-    fn alpha_beta(&mut self, alpha: i64, beta: i64, depth: usize) -> i64 {
+    fn alpha_beta(
+        &mut self,
+        alpha: i64,
+        beta: i64,
+        depth: usize,
+        parent_line: Vec<Move>,
+    ) -> (Vec<Move>, i64) {
         if depth == 0 {
-            return self.evaluate();
+            return (parent_line, self.evaluate());
         }
 
         let mut alpha = alpha;
+        let mut best_line = parent_line.clone();
 
         let moves = self.board.moves();
 
         if moves.is_empty() {
             if self.board.in_check() {
-                return MATED_VALUE + depth as i64;
+                return (parent_line, MATED_VALUE + depth as i64);
             }
-            return 0;
+            return (parent_line, 0);
         }
 
         for mv in moves {
+            let mut line = parent_line.clone();
+            line.push(mv.clone());
             self.board.make_move(&mv);
-            let score = -self.alpha_beta(-beta, -alpha, depth - 1);
+            let (line, neg_score) = self.alpha_beta(-beta, -alpha, depth - 1, line);
+            let score = -neg_score;
             self.board.unmake_move();
 
             if score >= beta {
-                return beta;
+                return (line, beta);
             }
 
             if score > alpha {
                 alpha = score;
+                best_line = line;
             }
         }
 
-        alpha
+        (best_line, alpha)
     }
 
     fn quiescense(&mut self, alpha: i64, beta: i64) -> i64 {

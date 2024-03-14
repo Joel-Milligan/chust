@@ -1,4 +1,6 @@
 #![allow(warnings)]
+
+use std::sync::LazyLock;
 // Sides
 pub const WHITE: usize = 0;
 pub const BLACK: usize = 1;
@@ -104,3 +106,19 @@ pub const E8: usize = 60;
 pub const F8: usize = 61;
 pub const G8: usize = 62;
 pub const H8: usize = 63;
+
+pub static ZOBRIST_BLACK: LazyLock<u64> = LazyLock::new(|| rand::random());
+
+pub static ZOBRIST: LazyLock<[[[u64; 6]; 2]; 64]> = LazyLock::new(|| {
+    let mut table = [[[0; 6]; 2]; 64];
+
+    for square in A1..=H8 {
+        for colour in WHITE..=BLACK {
+            for piece in KING..=PAWN {
+                table[square][colour][piece] = rand::random();
+            }
+        }
+    }
+
+    table
+});

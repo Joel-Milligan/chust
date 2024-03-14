@@ -416,6 +416,21 @@ impl Board {
         }
         None
     }
+
+    pub fn zobrist(&self) -> u64 {
+        let mut hash = 0u64;
+        if self.active_colour == BLACK {
+            hash ^= *ZOBRIST_BLACK;
+        }
+
+        for square in A1..=H8 {
+            if let Some((colour, piece)) = self.get_piece_at_square(square) {
+                hash ^= ZOBRIST[square][colour][piece];
+            }
+        }
+
+        hash
+    }
 }
 
 #[cfg(test)]

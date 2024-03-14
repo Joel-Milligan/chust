@@ -1,9 +1,26 @@
+use std::collections::HashMap;
+
 use crate::board::Board;
 use crate::constants::*;
 use crate::piece_move::Move;
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum NodeKind {
+    Exact,
+    Alpha,
+    Beta,
+}
+
+#[derive(Debug)]
+pub struct Node {
+    depth: usize,
+    score: i64,
+    kind: NodeKind,
+}
+
 pub struct Engine {
     pub board: Board,
+    pub transposition_table: HashMap<u64, Node>,
 }
 
 impl Default for Engine {
@@ -16,6 +33,7 @@ impl Engine {
     pub fn new() -> Engine {
         Engine {
             board: Board::default(),
+            transposition_table: HashMap::new(),
         }
     }
 
@@ -91,8 +109,41 @@ impl Engine {
         depth: usize,
         parent_line: Vec<Move>,
     ) -> (Vec<Move>, i64) {
+        // Check transposition table for existing entry
+        let hash = self.board.zobrist();
+        let node = self.transposition_table.get(&hash);
+
+        if let Some(node) = node {
+            if node.depth >= depth {
+                match node.kind {
+                    NodeKind::Exact => {
+                        return (parent_line, node.score);
+                    }
+                    NodeKind::Alpha => {
+                        if node.score <= alpha {
+                            return (parent_line, alpha);
+                        }
+                    }
+                    NodeKind::Beta => {
+                        if node.score >= beta {
+                            return (parent_line, beta);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut node_kind = NodeKind::Alpha;
+
         if depth == 0 {
-            return (parent_line, self.evaluate());
+            let score = self.evaluate();
+            let node = Node {
+                depth,
+                score,
+                kind: NodeKind::Exact,
+            };
+            self.transposition_table.insert(hash, node);
+            return (parent_line, score);
         }
 
         let mut alpha = alpha;
@@ -116,52 +167,32 @@ impl Engine {
             self.board.unmake_move();
 
             if score >= beta {
+                let node = Node {
+                    depth,
+                    score: beta,
+                    kind: NodeKind::Beta,
+                };
+
+                let hash = self.board.zobrist();
+                self.transposition_table.insert(hash, node);
                 return (line, beta);
             }
 
             if score > alpha {
+                node_kind = NodeKind::Exact;
                 alpha = score;
                 best_line = line;
             }
         }
 
+        let node = Node {
+            depth,
+            score: alpha,
+            kind: node_kind,
+        };
+        let hash = self.board.zobrist();
+        self.transposition_table.insert(hash, node);
+
         (best_line, alpha)
-    }
-
-    fn quiescense(&mut self, alpha: i64, beta: i64) -> i64 {
-        let eval = self.evaluate();
-
-        if eval >= beta {
-            return eval;
-        }
-
-        let mut alpha = alpha;
-
-        if alpha < eval {
-            alpha = eval;
-        }
-
-        let captures = self
-            .board
-            .moves()
-            .into_iter()
-            .filter(|mv| self.board.get_piece_at_square(mv.destination.0).is_some())
-            .collect::<Vec<_>>();
-
-        for capture in captures {
-            self.board.make_move(&capture);
-            let eval = -self.quiescense(-beta, -alpha);
-            self.board.unmake_move();
-
-            if eval > alpha {
-                if eval >= beta {
-                    return beta;
-                }
-
-                alpha = eval;
-            }
-        }
-
-        alpha
     }
 }

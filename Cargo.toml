@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 bitvec = "1"
 thiserror="1"
+rand = "0.8"
 
 [dev-dependencies]
 criterion = "0.5"

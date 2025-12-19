@@ -13,13 +13,13 @@ pub struct Move {
 
 impl Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.promotion.is_some() {
-            let piece = match self.promotion.unwrap() {
+        if let Some(promotion) = self.promotion {
+            let piece = match promotion {
                 KNIGHT => 'n',
                 BISHOP => 'b',
                 ROOK => 'r',
                 QUEEN => 'q',
-                _ => panic!("unknown promotition piece"),
+                _ => panic!("unknown promotion piece"),
             };
             write!(f, "{}{}{}", self.source, self.destination, piece)
         } else {

@@ -113,21 +113,21 @@ impl Engine {
         let hash = self.board.zobrist();
         let node = self.transposition_table.get(&hash);
 
-        if let Some(node) = node {
-            if node.depth >= depth {
-                match node.kind {
-                    NodeKind::Exact => {
-                        return (parent_line, node.score);
+        if let Some(node) = node
+            && node.depth >= depth
+        {
+            match node.kind {
+                NodeKind::Exact => {
+                    return (parent_line, node.score);
+                }
+                NodeKind::Alpha => {
+                    if node.score <= alpha {
+                        return (parent_line, alpha);
                     }
-                    NodeKind::Alpha => {
-                        if node.score <= alpha {
-                            return (parent_line, alpha);
-                        }
-                    }
-                    NodeKind::Beta => {
-                        if node.score >= beta {
-                            return (parent_line, beta);
-                        }
+                }
+                NodeKind::Beta => {
+                    if node.score >= beta {
+                        return (parent_line, beta);
                     }
                 }
             }

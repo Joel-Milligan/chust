@@ -1,4 +1,3 @@
-#![feature(lazy_cell)]
 #![feature(int_roundings)]
 
 pub mod bitboards;

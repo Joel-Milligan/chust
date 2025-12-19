@@ -1,5 +1,4 @@
-#![allow(warnings)]
-
+#![allow(dead_code)]
 use std::sync::LazyLock;
 // Sides
 pub const WHITE: u8 = 0;

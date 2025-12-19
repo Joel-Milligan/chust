@@ -1,4 +1,4 @@
-#![allow(warnings)]
+#![allow(unused)]
 use std::sync::LazyLock;
 
 use crate::constants::*;

@@ -1,4 +1,3 @@
-#![allow(warnings)]
 /// Utility functions for working with bitboards
 
 /// Returns a vector of all the indicies with an ON bit

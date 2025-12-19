@@ -17,15 +17,20 @@ Chess in rust
 
 ## Tasks
 
+1. Separate UCI and engine.
+    - This is required to be able to bench searching properly, as we currently print search results to stdout.
+2. Improve performance of searching
+    - Searching even >3 ply already starts taking seconds.
+
 ### Tech Debt
 
 - Improve seperation of concerns between UCI and engine
 - Error handling and validation
-- Clean up warning suppression
 - Clean up clones
 
 ### Performance
 
+- Iterative search should end early if mate is found
 - pv using transposition table
 - Move ordering
 - Pre-compute lookup tables for moves

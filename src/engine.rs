@@ -38,14 +38,19 @@ impl Engine {
     }
 
     pub fn evaluate(&self) -> i64 {
-        let friend = self.board.pieces[self.board.active_colour];
-        let enemy = self.board.pieces[!self.board.active_colour & 1];
+        let friend = self.board.pieces[self.board.active_colour as usize];
+        let enemy = self.board.pieces[!self.board.active_colour as usize & 1];
 
-        let queens = friend[QUEEN].count_ones() as i64 - enemy[QUEEN].count_ones() as i64;
-        let rooks = friend[ROOK].count_ones() as i64 - enemy[ROOK].count_ones() as i64;
-        let bishops = friend[BISHOP].count_ones() as i64 - enemy[BISHOP].count_ones() as i64;
-        let knights = friend[KNIGHT].count_ones() as i64 - enemy[KNIGHT].count_ones() as i64;
-        let pawns = friend[PAWN].count_ones() as i64 - enemy[PAWN].count_ones() as i64;
+        let queens =
+            friend[QUEEN as usize].count_ones() as i64 - enemy[QUEEN as usize].count_ones() as i64;
+        let rooks =
+            friend[ROOK as usize].count_ones() as i64 - enemy[ROOK as usize].count_ones() as i64;
+        let bishops = friend[BISHOP as usize].count_ones() as i64
+            - enemy[BISHOP as usize].count_ones() as i64;
+        let knights = friend[KNIGHT as usize].count_ones() as i64
+            - enemy[KNIGHT as usize].count_ones() as i64;
+        let pawns =
+            friend[PAWN as usize].count_ones() as i64 - enemy[PAWN as usize].count_ones() as i64;
 
         QUEEN_VALUE * queens
             + ROOK_VALUE * rooks
@@ -71,8 +76,7 @@ impl Engine {
         let moves = self.board.moves();
         for mv in moves {
             self.board.make_move(&mv);
-            let (line, neg_eval) =
-                self.alpha_beta(MATED_VALUE, i64::MAX, initial_depth, vec![mv.clone()]);
+            let (line, neg_eval) = self.alpha_beta(MATED_VALUE, i64::MAX, initial_depth, vec![mv]);
             let eval = -neg_eval;
             self.board.unmake_move();
 
@@ -160,7 +164,7 @@ impl Engine {
 
         for mv in moves {
             let mut line = parent_line.clone();
-            line.push(mv.clone());
+            line.push(mv);
             self.board.make_move(&mv);
             let (line, neg_score) = self.alpha_beta(-beta, -alpha, depth - 1, line);
             let score = -neg_score;

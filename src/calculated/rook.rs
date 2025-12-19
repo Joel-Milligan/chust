@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 
 use crate::constants::*;
 
-pub fn generate_rook_moves(square: usize, blockers: u64) -> u64 {
+pub fn generate_rook_moves(square: u8, blockers: u64) -> u64 {
     let mut moves = 0;
 
     let rank = square / 8;
@@ -89,7 +89,7 @@ pub static ROOK_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
             }
         }
 
-        rook_moves[square] = moves;
+        rook_moves[square as usize] = moves;
     }
 
     rook_moves
@@ -107,15 +107,15 @@ mod tests {
 
     #[test]
     fn occupancy() {
-        assert_eq!(ROOK_MOVES[E4], 0x1010106e101000);
-        assert_eq!(ROOK_MOVES[E1], 0x1010101010106e);
-        assert_eq!(ROOK_MOVES[D8], 0x7608080808080800);
-        assert_eq!(ROOK_MOVES[A4], 0x101017e010100);
-        assert_eq!(ROOK_MOVES[H5], 0x80807e80808000);
-        assert_eq!(ROOK_MOVES[A1], 0x101010101017e);
-        assert_eq!(ROOK_MOVES[H1], 0x8080808080807e);
-        assert_eq!(ROOK_MOVES[A8], 0x7e01010101010100);
-        assert_eq!(ROOK_MOVES[H8], 0x7e80808080808000);
+        assert_eq!(ROOK_MOVES[E4 as usize], 0x1010106e101000);
+        assert_eq!(ROOK_MOVES[E1 as usize], 0x1010101010106e);
+        assert_eq!(ROOK_MOVES[D8 as usize], 0x7608080808080800);
+        assert_eq!(ROOK_MOVES[A4 as usize], 0x101017e010100);
+        assert_eq!(ROOK_MOVES[H5 as usize], 0x80807e80808000);
+        assert_eq!(ROOK_MOVES[A1 as usize], 0x101010101017e);
+        assert_eq!(ROOK_MOVES[H1 as usize], 0x8080808080807e);
+        assert_eq!(ROOK_MOVES[A8 as usize], 0x7e01010101010100);
+        assert_eq!(ROOK_MOVES[H8 as usize], 0x7e80808080808000);
     }
 
     #[test]

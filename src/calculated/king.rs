@@ -4,13 +4,13 @@ use crate::bitboards::filter;
 use crate::constants::*;
 
 pub fn generate_king_moves(
-    square: usize,
+    square: u8,
     blockers: u64,
-    colour: usize,
+    colour: u8,
     attacked_squares: u64,
     castling: u8,
 ) -> u64 {
-    let mut moves = KING_MOVES[square];
+    let mut moves = KING_MOVES[square as usize];
 
     // Castling
     if colour == WHITE {
@@ -45,7 +45,7 @@ pub fn generate_king_moves(
 pub static KING_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
     let mut king_moves = [0; 64];
 
-    for (square, mv) in king_moves.iter_mut().enumerate().take(H8 + 1) {
+    for (square, mv) in king_moves.iter_mut().enumerate().take(H8 as usize + 1) {
         let bitboard = 1 << square;
         let mut moves = 0;
 
@@ -71,23 +71,23 @@ mod tests {
 
     #[test]
     fn full_move_set() {
-        assert_eq!(KING_MOVES[E4], 0x0038_2838_0000);
-        assert_eq!(KING_MOVES[B7], 0x0705_0700_0000_0000);
+        assert_eq!(KING_MOVES[E4 as usize], 0x0038_2838_0000);
+        assert_eq!(KING_MOVES[B7 as usize], 0x0705_0700_0000_0000);
     }
 
     #[test]
     fn edges() {
-        assert_eq!(KING_MOVES[H5], 0xc040_c000_0000);
-        assert_eq!(KING_MOVES[A4], 0x0003_0203_0000);
-        assert_eq!(KING_MOVES[E1], 0x3828);
-        assert_eq!(KING_MOVES[E8], 0x2838_0000_0000_0000);
+        assert_eq!(KING_MOVES[H5 as usize], 0xc040_c000_0000);
+        assert_eq!(KING_MOVES[A4 as usize], 0x0003_0203_0000);
+        assert_eq!(KING_MOVES[E1 as usize], 0x3828);
+        assert_eq!(KING_MOVES[E8 as usize], 0x2838_0000_0000_0000);
     }
 
     #[test]
     fn corners() {
-        assert_eq!(KING_MOVES[A1], 0x302);
-        assert_eq!(KING_MOVES[H1], 0xc040);
-        assert_eq!(KING_MOVES[A8], 0x0203_0000_0000_0000);
-        assert_eq!(KING_MOVES[H8], 0x40c0_0000_0000_0000);
+        assert_eq!(KING_MOVES[A1 as usize], 0x302);
+        assert_eq!(KING_MOVES[H1 as usize], 0xc040);
+        assert_eq!(KING_MOVES[A8 as usize], 0x0203_0000_0000_0000);
+        assert_eq!(KING_MOVES[H8 as usize], 0x40c0_0000_0000_0000);
     }
 }

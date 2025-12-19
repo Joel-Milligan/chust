@@ -4,11 +4,11 @@ use std::str::FromStr;
 use crate::constants::{BISHOP, KNIGHT, QUEEN, ROOK};
 use crate::square::Square;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Move {
     pub source: Square,
     pub destination: Square,
-    pub promotion: Option<usize>,
+    pub promotion: Option<u8>,
 }
 
 impl Display for Move {
@@ -29,7 +29,7 @@ impl Display for Move {
 }
 
 impl Move {
-    pub fn new(source: usize, destination: usize) -> Move {
+    pub fn new(source: u8, destination: u8) -> Move {
         Move {
             source: Square(source),
             destination: Square(destination),
@@ -37,7 +37,7 @@ impl Move {
         }
     }
 
-    pub fn promotion(source: usize, destination: usize, piece: usize) -> Move {
+    pub fn promotion(source: u8, destination: u8, piece: u8) -> Move {
         let mut mv = Move::new(source, destination);
         mv.promotion = Some(piece);
         mv

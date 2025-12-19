@@ -1,5 +1,5 @@
 use chust::board::Board;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 
 pub fn perft_bench(c: &mut Criterion) {
     let mut board = Board::default();

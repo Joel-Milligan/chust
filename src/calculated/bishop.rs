@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 
 use crate::constants::*;
 
-pub fn generate_bishop_moves(square: usize, blockers: u64) -> u64 {
+pub fn generate_bishop_moves(square: u8, blockers: u64) -> u64 {
     let mut moves = 0;
 
     let rank = square / 8;
@@ -89,7 +89,7 @@ pub static BISHOP_MOVES: LazyLock<[u64; 64]> = LazyLock::new(|| {
             }
         }
 
-        moves[square] = squares;
+        moves[square as usize] = squares;
     }
 
     moves
@@ -132,7 +132,7 @@ pub static BISHOP_OCCUPANCY: LazyLock<[u64; 64]> = LazyLock::new(|| {
             }
         }
 
-        occupancy[square] = squares;
+        occupancy[square as usize] = squares;
     }
 
     occupancy
@@ -149,28 +149,28 @@ mod tests {
 
     #[test]
     fn occupancy() {
-        assert_eq!(BISHOP_OCCUPANCY[E4], 0x2442800284400);
-        assert_eq!(BISHOP_OCCUPANCY[E1], 0x2442800);
-        assert_eq!(BISHOP_OCCUPANCY[D8], 0x14224000000000);
-        assert_eq!(BISHOP_OCCUPANCY[A4], 0x8040200020400);
-        assert_eq!(BISHOP_OCCUPANCY[H5], 0x20400040201000);
-        assert_eq!(BISHOP_OCCUPANCY[A1], 0x40201008040200);
-        assert_eq!(BISHOP_OCCUPANCY[H1], 0x2040810204000);
-        assert_eq!(BISHOP_OCCUPANCY[A8], 0x2040810204000);
-        assert_eq!(BISHOP_OCCUPANCY[H8], 0x40201008040200);
+        assert_eq!(BISHOP_OCCUPANCY[E4 as usize], 0x2442800284400);
+        assert_eq!(BISHOP_OCCUPANCY[E1 as usize], 0x2442800);
+        assert_eq!(BISHOP_OCCUPANCY[D8 as usize], 0x14224000000000);
+        assert_eq!(BISHOP_OCCUPANCY[A4 as usize], 0x8040200020400);
+        assert_eq!(BISHOP_OCCUPANCY[H5 as usize], 0x20400040201000);
+        assert_eq!(BISHOP_OCCUPANCY[A1 as usize], 0x40201008040200);
+        assert_eq!(BISHOP_OCCUPANCY[H1 as usize], 0x2040810204000);
+        assert_eq!(BISHOP_OCCUPANCY[A8 as usize], 0x2040810204000);
+        assert_eq!(BISHOP_OCCUPANCY[H8 as usize], 0x40201008040200);
     }
 
     #[test]
     fn moves() {
-        assert_eq!(BISHOP_MOVES[E4], 0x182442800284482);
-        assert_eq!(BISHOP_MOVES[E1], 0x182442800);
-        // assert_eq!(BISHOP_MOVES[D8], 0x14224000000000);
-        // assert_eq!(BISHOP_MOVES[A4], 0x8040200020400);
-        // assert_eq!(BISHOP_MOVES[H5], 0x20400040201000);
-        assert_eq!(BISHOP_MOVES[A1], 0x8040201008040200);
-        // assert_eq!(BISHOP_MOVES[H1], 0x2040810204000);
-        // assert_eq!(BISHOP_MOVES[A8], 0x2040810204000);
-        // assert_eq!(BISHOP_MOVES[H8], 0x40201008040200);
+        assert_eq!(BISHOP_MOVES[E4 as usize], 0x182442800284482);
+        assert_eq!(BISHOP_MOVES[E1 as usize], 0x182442800);
+        // assert_eq!(BISHOP_MOVES[D8 as usize], 0x14224000000000);
+        // assert_eq!(BISHOP_MOVES[A4 as usize], 0x8040200020400);
+        // assert_eq!(BISHOP_MOVES[H5 as usize], 0x20400040201000);
+        assert_eq!(BISHOP_MOVES[A1 as usize], 0x8040201008040200);
+        // assert_eq!(BISHOP_MOVES[H1 as usize], 0x2040810204000);
+        // assert_eq!(BISHOP_MOVES[A8 as usize], 0x2040810204000);
+        // assert_eq!(BISHOP_MOVES[H8 as usize], 0x40201008040200);
     }
 
     #[test]

@@ -2,9 +2,9 @@ use bitvec::prelude::*;
 use thiserror::Error;
 
 use crate::calculated::bishop::generate_bishop_moves;
-use crate::calculated::king::{generate_king_moves, KING_MOVES};
+use crate::calculated::king::{KING_MOVES, generate_king_moves};
 use crate::calculated::knight::generate_knight_moves;
-use crate::calculated::pawn::{generate_pawn_moves, PAWN_ATTACKS};
+use crate::calculated::pawn::{PAWN_ATTACKS, generate_pawn_moves};
 use crate::calculated::rook::generate_rook_moves;
 use crate::constants::*;
 use crate::piece_move::Move;
@@ -20,12 +20,12 @@ pub struct FenError;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Board {
     pub pieces: [[u64; 6]; 2],
-    pub active_colour: usize,
+    pub active_colour: u8,
     castling: u8,
-    en_passant: Option<usize>,
+    en_passant: Option<u8>,
     /// Number of half moves since last capture or pawn push, used for the fifty-move rule
-    half_moves: usize,
-    full_moves: usize,
+    half_moves: u8,
+    full_moves: u8,
     previous_position: Option<Box<Board>>,
 }
 
@@ -100,7 +100,7 @@ impl Board {
                 _ => return Err(FenError),
             };
 
-            pieces[colour][piece] |= 1 << idx;
+            pieces[colour as usize][piece as usize] |= 1 << idx;
 
             idx += 1;
         }
@@ -147,7 +147,9 @@ impl Board {
             .filter(|candidate| {
                 let mut board = self.clone();
                 board.make_move(candidate);
-                board.attacked(board.active_colour) & board.pieces[self.active_colour][KING] == 0
+                board.attacked(board.active_colour)
+                    & board.pieces[self.active_colour as usize][KING as usize]
+                    == 0
             })
             .collect()
     }
@@ -160,26 +162,25 @@ impl Board {
             .collect()
     }
 
-    fn pseudo_legal_moves_square(&self, square: usize) -> Vec<Move> {
+    fn pseudo_legal_moves_square(&self, square: u8) -> Vec<Move> {
         let (colour, piece) = match self.get_piece_at_square(square) {
             Some(p) => p,
             None => return vec![],
         };
-        let opponent_colour = if colour == WHITE { BLACK } else { WHITE };
 
-        let friendly_pieces = self.pieces[colour]
+        let friendly_pieces = self.pieces[colour as usize]
             .into_iter()
             .reduce(|acc, e| acc | e)
             .unwrap();
 
-        let opponent_pieces = self.pieces[opponent_colour]
+        let opponent_pieces = self.pieces[1 - colour as usize]
             .into_iter()
             .reduce(|acc, e| acc | e)
             .unwrap();
 
         let blockers = friendly_pieces | opponent_pieces;
 
-        let pawn_attacks = PAWN_ATTACKS[colour][square]
+        let pawn_attacks = PAWN_ATTACKS[colour as usize][square as usize]
             & (opponent_pieces | self.en_passant.map_or(0, |s| 1 << s));
 
         let moves = match piece {
@@ -188,7 +189,7 @@ impl Board {
                 square,
                 blockers,
                 colour,
-                self.attacked(opponent_colour),
+                self.attacked(1 - colour),
                 self.castling,
             ),
             KNIGHT => generate_knight_moves(square),
@@ -212,14 +213,14 @@ impl Board {
         {
             return moves
                 .into_iter()
-                .enumerate()
-                .filter(|(_, m)| **m)
-                .flat_map(|destination| {
+                .zip(0u8..)
+                .filter(|(m, _)| **m)
+                .flat_map(|(_, destination)| {
                     vec![
-                        Move::promotion(square, destination.0, BISHOP),
-                        Move::promotion(square, destination.0, KNIGHT),
-                        Move::promotion(square, destination.0, QUEEN),
-                        Move::promotion(square, destination.0, ROOK),
+                        Move::promotion(square, destination, BISHOP),
+                        Move::promotion(square, destination, KNIGHT),
+                        Move::promotion(square, destination, QUEEN),
+                        Move::promotion(square, destination, ROOK),
                     ]
                 })
                 .collect();
@@ -227,9 +228,9 @@ impl Board {
 
         moves
             .into_iter()
-            .enumerate()
-            .filter(|(_, m)| **m)
-            .map(|destination| Move::new(square, destination.0))
+            .zip(0u8..)
+            .filter(|(m, _)| **m)
+            .map(|(_, destination)| Move::new(square, destination))
             .collect()
     }
 
@@ -240,31 +241,27 @@ impl Board {
         // Pieces
         let (colour, piece) = self.get_piece_at_square(mv.source.0).unwrap();
         let captured_piece = self.get_piece_at_square(mv.destination.0);
+        let mut en_passant = None;
 
-        let opponent_colour = if colour == WHITE { BLACK } else { WHITE };
-
-        // Castling
-        if piece == KING && mv.source.0.abs_diff(mv.destination.0) == 2 {
-            match mv.destination.0 {
-                G1 => self.pieces[colour][ROOK] ^= 1 << F1 | 1 << H1,
-                C1 => self.pieces[colour][ROOK] ^= 1 << D1 | 1 << A1,
-                G8 => self.pieces[colour][ROOK] ^= 1 << F8 | 1 << H8,
-                C8 => self.pieces[colour][ROOK] ^= 1 << D8 | 1 << A8,
-                s => panic!("can't castle to square: {}", Square(s)),
+        if piece == PAWN {
+            // En passant
+            if self.en_passant.is_some_and(|ep| mv.destination.0 == ep) {
+                if colour == WHITE {
+                    self.pieces[BLACK as usize][PAWN as usize] ^= 1 << (mv.destination.0 - 8);
+                } else {
+                    self.pieces[WHITE as usize][PAWN as usize] ^= 1 << (mv.destination.0 + 8);
+                }
             }
-        }
 
-        // Moving king prevents castling
-        if piece == KING {
-            if colour == WHITE {
-                self.castling &= !(WHITE_KING_SIDE | WHITE_QUEEN_SIDE);
-            } else {
-                self.castling &= !(BLACK_KING_SIDE | BLACK_QUEEN_SIDE);
+            if mv.source.0.abs_diff(mv.destination.0) == 16 {
+                if colour == WHITE {
+                    en_passant = Some(mv.source.0 + 8);
+                } else {
+                    en_passant = Some(mv.source.0 - 8);
+                }
             }
-        }
-
-        // Moving rook prevents castling
-        if piece == ROOK {
+        } else if piece == ROOK {
+            // Moving rook prevents castling
             if self.castling & WHITE_KING_SIDE != 0 && mv.source.0 == H1 {
                 self.castling ^= WHITE_KING_SIDE;
             } else if self.castling & WHITE_QUEEN_SIDE != 0 && mv.source.0 == A1 {
@@ -273,6 +270,24 @@ impl Board {
                 self.castling ^= BLACK_KING_SIDE;
             } else if self.castling & BLACK_QUEEN_SIDE != 0 && mv.source.0 == A8 {
                 self.castling ^= BLACK_QUEEN_SIDE;
+            }
+        } else if piece == KING {
+            // Castling
+            if mv.source.0.abs_diff(mv.destination.0) == 2 {
+                match mv.destination.0 {
+                    G1 => self.pieces[colour as usize][ROOK as usize] ^= 1 << F1 | 1 << H1,
+                    C1 => self.pieces[colour as usize][ROOK as usize] ^= 1 << D1 | 1 << A1,
+                    G8 => self.pieces[colour as usize][ROOK as usize] ^= 1 << F8 | 1 << H8,
+                    C8 => self.pieces[colour as usize][ROOK as usize] ^= 1 << D8 | 1 << A8,
+                    s => panic!("can't castle to square: {}", Square(s)),
+                }
+            }
+
+            // Moving king prevents castling
+            if colour == WHITE {
+                self.castling &= !(WHITE_KING_SIDE | WHITE_QUEEN_SIDE);
+            } else {
+                self.castling &= !(BLACK_KING_SIDE | BLACK_QUEEN_SIDE);
             }
         }
 
@@ -287,42 +302,30 @@ impl Board {
             self.castling ^= BLACK_QUEEN_SIDE;
         }
 
-        // En passant
-        if piece == PAWN && self.en_passant.is_some_and(|ep| mv.destination.0 == ep) {
-            if colour == WHITE {
-                self.pieces[BLACK][PAWN] ^= 1 << (mv.destination.0 - 8);
-            } else {
-                self.pieces[WHITE][PAWN] ^= 1 << (mv.destination.0 + 8);
-            }
-        }
+        self.en_passant = en_passant;
 
-        if piece == PAWN && mv.source.0.abs_diff(mv.destination.0) == 16 {
-            if colour == WHITE {
-                self.en_passant = Some(mv.source.0 + 8);
-            } else {
-                self.en_passant = Some(mv.source.0 - 8);
-            }
-        } else {
-            self.en_passant = None;
-        }
-
-        // Bitboards
         if let Some(promotion) = mv.promotion {
-            self.pieces[colour][piece] ^= 1 << mv.source.0;
-            self.pieces[colour][promotion] ^= 1 << mv.destination.0;
+            // Promote
+            self.pieces[colour as usize][piece as usize] ^= 1 << mv.source.0;
+            self.pieces[colour as usize][promotion as usize] ^= 1 << mv.destination.0;
         } else {
-            self.pieces[colour][piece] ^= 1 << mv.destination.0 | 1 << mv.source.0;
+            // Normal move
+            self.pieces[colour as usize][piece as usize] ^=
+                1 << mv.destination.0 | 1 << mv.source.0;
         }
 
+        // Capture
         if let Some(piece) = captured_piece {
-            self.pieces[piece.0][piece.1] ^= 1 << mv.destination.0;
+            self.pieces[piece.0 as usize][piece.1 as usize] ^= 1 << mv.destination.0;
         };
 
+        // Switch colour
         if self.active_colour == BLACK {
             self.full_moves += 1;
         }
-        self.active_colour = opponent_colour;
+        self.active_colour = 1 - colour;
 
+        // Increment counter for 50-move rule
         if captured_piece.is_some() || piece == PAWN {
             self.half_moves = 0;
         } else {
@@ -336,15 +339,15 @@ impl Board {
         }
     }
 
-    pub fn attacked(&self, attacking_colour: usize) -> u64 {
+    pub fn attacked(&self, attacking_colour: u8) -> u64 {
         (A1..=H8)
             .map(|square| (square, self.get_piece_at_square(square)))
             .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == attacking_colour))
             .map(|(square, piece)| match piece.unwrap().1 {
                 BISHOP => generate_bishop_moves(square, self.blockers()),
-                KING => KING_MOVES[square],
+                KING => KING_MOVES[square as usize],
                 KNIGHT => generate_knight_moves(square),
-                PAWN => PAWN_ATTACKS[attacking_colour][square],
+                PAWN => PAWN_ATTACKS[attacking_colour as usize][square as usize],
                 QUEEN => {
                     generate_bishop_moves(square, self.blockers())
                         | generate_rook_moves(square, self.blockers())
@@ -358,7 +361,7 @@ impl Board {
 
     pub fn in_check(&self) -> bool {
         let attacked = self.attacked(!self.active_colour & 1);
-        self.pieces[self.active_colour][KING] & attacked != 0
+        self.pieces[self.active_colour as usize][KING as usize] & attacked != 0
     }
 
     fn blockers(&self) -> u64 {
@@ -406,10 +409,10 @@ impl Board {
         println!("\n{nodes}");
     }
 
-    pub fn get_piece_at_square(&self, square: usize) -> Option<(usize, usize)> {
+    pub fn get_piece_at_square(&self, square: u8) -> Option<(u8, u8)> {
         for colour in WHITE..=BLACK {
             for piece in KING..=PAWN {
-                if self.pieces[colour][piece] & 1 << square != 0 {
+                if self.pieces[colour as usize][piece as usize] & 1 << square != 0 {
                     return Some((colour, piece));
                 }
             }
@@ -425,7 +428,7 @@ impl Board {
 
         for square in A1..=H8 {
             if let Some((colour, piece)) = self.get_piece_at_square(square) {
-                hash ^= ZOBRIST[square][colour][piece];
+                hash ^= ZOBRIST[square as usize][colour as usize][piece as usize];
             }
         }
 

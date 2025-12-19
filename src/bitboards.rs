@@ -62,7 +62,10 @@ mod tests {
 
     #[test]
     fn occupancy() {
-        assert_eq!(get_occupancies(0, ROOK_MOVES[A1]), 0);
-        assert_eq!(get_occupancies(4095, ROOK_MOVES[A1]), 0x101010101017e);
+        assert_eq!(get_occupancies(0, ROOK_MOVES[A1 as usize]), 0);
+        assert_eq!(
+            get_occupancies(4095, ROOK_MOVES[A1 as usize]),
+            0x101010101017e
+        );
     }
 }

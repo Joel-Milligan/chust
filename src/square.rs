@@ -1,8 +1,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Square(pub usize);
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Square(pub u8);
 
 impl Display for Square {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -19,12 +19,12 @@ pub const BLACK_KING_SIDE: u8 = 4;
 pub const BLACK_QUEEN_SIDE: u8 = 8;
 
 // Engine Values
-pub const QUEEN_VALUE: i64 = 900;
-pub const ROOK_VALUE: i64 = 500;
-pub const BISHOP_VALUE: i64 = 300;
-pub const KNIGHT_VALUE: i64 = 300;
-pub const PAWN_VALUE: i64 = 100;
-pub const MATED_VALUE: i64 = i64::MIN / 2;
+pub const QUEEN_VALUE: i32 = 900;
+pub const ROOK_VALUE: i32 = 500;
+pub const BISHOP_VALUE: i32 = 300;
+pub const KNIGHT_VALUE: i32 = 300;
+pub const PAWN_VALUE: i32 = 100;
+pub const MATED_VALUE: i32 = i32::MIN / 2;
 
 // Files
 pub const A_FILE: u64 = 0x0101010101010101;

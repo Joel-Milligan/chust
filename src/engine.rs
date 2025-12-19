@@ -14,7 +14,7 @@ pub enum NodeKind {
 #[derive(Debug)]
 pub struct Node {
     depth: usize,
-    score: i64,
+    score: i32,
     kind: NodeKind,
 }
 
@@ -37,26 +37,21 @@ impl Engine {
         }
     }
 
-    pub fn evaluate(&self) -> i64 {
+    pub fn evaluate(&self) -> i32 {
         let friend = self.board.pieces[self.board.active_colour as usize];
         let enemy = self.board.pieces[!self.board.active_colour as usize & 1];
 
-        let queens =
-            friend[QUEEN as usize].count_ones() as i64 - enemy[QUEEN as usize].count_ones() as i64;
-        let rooks =
-            friend[ROOK as usize].count_ones() as i64 - enemy[ROOK as usize].count_ones() as i64;
-        let bishops = friend[BISHOP as usize].count_ones() as i64
-            - enemy[BISHOP as usize].count_ones() as i64;
-        let knights = friend[KNIGHT as usize].count_ones() as i64
-            - enemy[KNIGHT as usize].count_ones() as i64;
-        let pawns =
-            friend[PAWN as usize].count_ones() as i64 - enemy[PAWN as usize].count_ones() as i64;
+        let queens = friend[QUEEN as usize].count_ones() - enemy[QUEEN as usize].count_ones();
+        let rooks = friend[ROOK as usize].count_ones() - enemy[ROOK as usize].count_ones();
+        let bishops = friend[BISHOP as usize].count_ones() - enemy[BISHOP as usize].count_ones();
+        let knights = friend[KNIGHT as usize].count_ones() - enemy[KNIGHT as usize].count_ones();
+        let pawns = friend[PAWN as usize].count_ones() - enemy[PAWN as usize].count_ones();
 
-        QUEEN_VALUE * queens
-            + ROOK_VALUE * rooks
-            + BISHOP_VALUE * bishops
-            + KNIGHT_VALUE * knights
-            + PAWN_VALUE * pawns
+        QUEEN_VALUE * queens as i32
+            + ROOK_VALUE * rooks as i32
+            + BISHOP_VALUE * bishops as i32
+            + KNIGHT_VALUE * knights as i32
+            + PAWN_VALUE * pawns as i32
     }
 
     pub fn iterative_deepening(&mut self, deepest: usize) {
@@ -69,14 +64,14 @@ impl Engine {
         println!("bestmove {}", pv.first().unwrap());
     }
 
-    fn start_search(&mut self, initial_depth: usize) -> (Vec<Move>, i64) {
+    fn start_search(&mut self, initial_depth: usize) -> (Vec<Move>, i32) {
         let mut max_eval = MATED_VALUE;
         let mut pv = vec![];
 
         let moves = self.board.moves();
         for mv in moves {
             self.board.make_move(&mv);
-            let (line, neg_eval) = self.alpha_beta(MATED_VALUE, i64::MAX, initial_depth, vec![mv]);
+            let (line, neg_eval) = self.alpha_beta(MATED_VALUE, i32::MAX, initial_depth, vec![mv]);
             let eval = -neg_eval;
             self.board.unmake_move();
 
@@ -91,7 +86,7 @@ impl Engine {
         let mate = MATED_VALUE.abs() - max_eval.abs();
 
         if mate <= 100 {
-            let mate = (initial_depth as i64 - mate + 1).div_ceil(2);
+            let mate = (initial_depth as i32 - mate + 1).div_ceil(2);
             let mate = if max_eval > 0 { mate } else { -mate };
             print!("mate {mate} pv ");
         } else {
@@ -108,11 +103,11 @@ impl Engine {
 
     fn alpha_beta(
         &mut self,
-        alpha: i64,
-        beta: i64,
+        alpha: i32,
+        beta: i32,
         depth: usize,
         parent_line: Vec<Move>,
-    ) -> (Vec<Move>, i64) {
+    ) -> (Vec<Move>, i32) {
         // Check transposition table for existing entry
         let hash = self.board.zobrist();
         let node = self.transposition_table.get(&hash);
@@ -157,7 +152,7 @@ impl Engine {
 
         if moves.is_empty() {
             if self.board.in_check() {
-                return (parent_line, MATED_VALUE + depth as i64);
+                return (parent_line, MATED_VALUE + depth as i32);
             }
             return (parent_line, 0);
         }

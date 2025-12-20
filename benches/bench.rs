@@ -16,7 +16,9 @@ pub fn search_bench(c: &mut Criterion) {
 
     c.bench_function("search: mate in 2", |b| {
         b.iter(|| {
-            engine.iterative_deepening(std::hint::black_box(3));
+            for depth in 0..=3 {
+                let _ = engine.start_search(std::hint::black_box(depth));
+            }
             // Clear table to prevent information being kept between runs
             engine.transposition_table = HashMap::new();
         })

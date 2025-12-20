@@ -39,7 +39,7 @@ impl Engine {
 
     pub fn evaluate(&self) -> i32 {
         let friend = self.board.pieces[self.board.active_colour as usize];
-        let enemy = self.board.pieces[!self.board.active_colour as usize & 1];
+        let enemy = self.board.pieces[1 - self.board.active_colour as usize];
 
         let queens = friend[QUEEN as usize].count_ones() - enemy[QUEEN as usize].count_ones();
         let rooks = friend[ROOK as usize].count_ones() - enemy[ROOK as usize].count_ones();
@@ -54,17 +54,7 @@ impl Engine {
             + PAWN_VALUE * pawns as i32
     }
 
-    pub fn iterative_deepening(&mut self, deepest: usize) {
-        for depth in 0..deepest {
-            self.start_search(depth);
-        }
-
-        let (pv, _) = self.start_search(deepest);
-
-        println!("bestmove {}", pv.first().unwrap());
-    }
-
-    fn start_search(&mut self, initial_depth: usize) -> (Vec<Move>, i32) {
+    pub fn start_search(&mut self, initial_depth: usize) -> (Vec<Move>, i32) {
         let mut max_eval = MATED_VALUE;
         let mut pv = vec![];
 
@@ -80,23 +70,6 @@ impl Engine {
                 pv = line;
             }
         }
-
-        print!("info depth {initial_depth} score ");
-
-        let mate = MATED_VALUE.abs() - max_eval.abs();
-
-        if mate <= 100 {
-            let mate = (initial_depth as i32 - mate + 1).div_ceil(2);
-            let mate = if max_eval > 0 { mate } else { -mate };
-            print!("mate {mate} pv ");
-        } else {
-            print!("cp {max_eval} pv ");
-        }
-
-        for mv in &pv {
-            print!("{mv} ");
-        }
-        println!();
 
         (pv, max_eval)
     }

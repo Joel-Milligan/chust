@@ -11,20 +11,19 @@ Chess in rust
 `cargo test`: Uses perft to confirm correctness
 
 ### En Crossiant
+
 1. Build in release mode
 2. Add new engine in En Crossiant - Local: `target/release/chust`
 3. Configure engine to depth of 3-5 (anything more takes too long)
 
 ## Tasks
 
-1. Separate UCI and engine.
-    - This is required to be able to bench searching properly, as we currently print search results to stdout.
-2. Improve performance of searching
-    - Searching even >3 ply already starts taking seconds.
+1. Improve performance of searching (Searching even >3 ply already starts taking seconds)
 
 ### Tech Debt
 
 - Improve seperation of concerns between UCI and engine
+    - Some has been completed, but still too tied together
 - Error handling and validation
 - Clean up clones
 

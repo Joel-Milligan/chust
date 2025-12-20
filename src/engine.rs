@@ -62,17 +62,16 @@ impl Engine {
     pub fn start_search(&mut self, initial_depth: usize) -> (Vec<Move>, i32) {
         let mut max_eval = MATED_VALUE;
         let mut pv = vec![];
-
-        let moves = self.board.moves();
-        for mv in moves {
+        let mut line = vec![];
+        for mv in self.board.moves() {
             self.board.make_move(&mv);
-            let (line, neg_eval) = self.alpha_beta(MATED_VALUE, i32::MAX, initial_depth, vec![mv]);
+            let neg_eval = self.alpha_beta(MATED_VALUE, i32::MAX, initial_depth, &mut line);
             let eval = -neg_eval;
             self.board.unmake_move();
 
             if eval > max_eval {
                 max_eval = eval;
-                pv = line;
+                update_line(&mut pv, mv, &line);
             }
         }
 
@@ -84,8 +83,8 @@ impl Engine {
         alpha: i32,
         beta: i32,
         depth: usize,
-        parent_line: Vec<Move>,
-    ) -> (Vec<Move>, i32) {
+        parent_line: &mut Vec<Move>,
+    ) -> i32 {
         // Check transposition table for existing entry
         let hash = self.board.zobrist();
         let node = self.transposition_table.get(&hash);
@@ -95,16 +94,16 @@ impl Engine {
         {
             match node.kind {
                 NodeKind::Exact => {
-                    return (parent_line, node.score);
+                    return node.score;
                 }
                 NodeKind::Alpha => {
                     if node.score <= alpha {
-                        return (parent_line, alpha);
+                        return alpha;
                     }
                 }
                 NodeKind::Beta => {
                     if node.score >= beta {
-                        return (parent_line, beta);
+                        return beta;
                     }
                 }
             }
@@ -120,26 +119,24 @@ impl Engine {
                 kind: NodeKind::Exact,
             };
             self.transposition_table.insert(hash, node);
-            return (parent_line, score);
+            return score;
         }
 
         let mut alpha = alpha;
-        let mut best_line = parent_line.clone();
 
         let moves = self.board.moves();
-
         if moves.is_empty() {
             if self.board.in_check() {
-                return (parent_line, MATED_VALUE + depth as i32);
+                return MATED_VALUE + depth as i32;
             }
-            return (parent_line, 0);
+            return 0;
         }
 
+        let mut line = vec![];
+
         for mv in moves {
-            let mut line = parent_line.clone();
-            line.push(mv);
             self.board.make_move(&mv);
-            let (line, neg_score) = self.alpha_beta(-beta, -alpha, depth - 1, line);
+            let neg_score = self.alpha_beta(-beta, -alpha, depth - 1, &mut line);
             let score = -neg_score;
             self.board.unmake_move();
 
@@ -152,13 +149,13 @@ impl Engine {
 
                 let hash = self.board.zobrist();
                 self.transposition_table.insert(hash, node);
-                return (line, beta);
+                return beta;
             }
 
             if score > alpha {
                 node_kind = NodeKind::Exact;
                 alpha = score;
-                best_line = line;
+                update_line(parent_line, mv, &line);
             }
         }
 
@@ -170,6 +167,13 @@ impl Engine {
         let hash = self.board.zobrist();
         self.transposition_table.insert(hash, node);
 
-        (best_line, alpha)
+        alpha
     }
+}
+
+fn update_line(line: &mut Vec<Move>, mv: Move, child_line: &Vec<Move>) {
+    let mut new_line = Vec::with_capacity(child_line.len() + 1);
+    new_line.push(mv);
+    new_line.extend(child_line.clone());
+    *line = new_line;
 }

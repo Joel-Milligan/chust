@@ -20,6 +20,7 @@ pub struct FenError;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Board {
     pub pieces: [[u64; 6]; 2],
+    pub squares: [Option<(u8, u8)>; 64],
     pub active_colour: u8,
     castling: u8,
     en_passant: Option<u8>,
@@ -40,7 +41,7 @@ impl Display for Board {
         for rank in (0..8).rev() {
             write!(f, "{} ", rank + 1)?;
             for file in 0..8 {
-                if let Some(piece) = self.get_piece_at_square(rank * 8 + file) {
+                if let Some(piece) = self.squares[rank * 8 + file] {
                     let kind = match piece.1 {
                         KING => "k",
                         QUEEN => "q",
@@ -69,6 +70,7 @@ impl Display for Board {
 impl Board {
     pub fn from_fen(fen: &str) -> Result<Self, FenError> {
         let mut pieces = [[0; 6]; 2];
+        let mut squares = [None; 64];
 
         let fields: Vec<&str> = fen.split_whitespace().collect();
 
@@ -101,6 +103,7 @@ impl Board {
             };
 
             pieces[colour as usize][piece as usize] |= 1 << idx;
+            squares[idx as usize] = Some((colour, piece));
 
             idx += 1;
         }
@@ -132,6 +135,7 @@ impl Board {
 
         Ok(Board {
             pieces,
+            squares,
             active_colour,
             castling,
             en_passant,
@@ -156,14 +160,14 @@ impl Board {
 
     fn pseudo_legal_moves(&self) -> Vec<Move> {
         (A1..=H8)
-            .map(|square| (square, self.get_piece_at_square(square)))
+            .map(|square| (square, self.squares[square as usize]))
             .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == self.active_colour))
             .flat_map(|(square, _)| self.pseudo_legal_moves_square(square))
             .collect()
     }
 
     fn pseudo_legal_moves_square(&self, square: u8) -> Vec<Move> {
-        let (colour, piece) = match self.get_piece_at_square(square) {
+        let (colour, piece) = match self.squares[square as usize] {
             Some(p) => p,
             None => return vec![],
         };
@@ -239,17 +243,19 @@ impl Board {
         self.previous_position = Some(Box::new(self.clone()));
 
         // Pieces
-        let (colour, piece) = self.get_piece_at_square(mv.source.0).unwrap();
-        let captured_piece = self.get_piece_at_square(mv.destination.0);
+        let (colour, piece) = self.squares[mv.source.0 as usize].unwrap();
+        let captured_piece = self.squares[mv.destination.0 as usize];
         let mut en_passant = None;
 
         if piece == PAWN {
-            // En passant
+            // Remove opposing pawn via en passant
             if self.en_passant.is_some_and(|ep| mv.destination.0 == ep) {
                 if colour == WHITE {
                     self.pieces[BLACK as usize][PAWN as usize] ^= 1 << (mv.destination.0 - 8);
+                    self.squares[mv.destination.0 as usize - 8] = None;
                 } else {
                     self.pieces[WHITE as usize][PAWN as usize] ^= 1 << (mv.destination.0 + 8);
+                    self.squares[mv.destination.0 as usize + 8] = None;
                 }
             }
 
@@ -275,10 +281,26 @@ impl Board {
             // Castling
             if mv.source.0.abs_diff(mv.destination.0) == 2 {
                 match mv.destination.0 {
-                    G1 => self.pieces[colour as usize][ROOK as usize] ^= 1 << F1 | 1 << H1,
-                    C1 => self.pieces[colour as usize][ROOK as usize] ^= 1 << D1 | 1 << A1,
-                    G8 => self.pieces[colour as usize][ROOK as usize] ^= 1 << F8 | 1 << H8,
-                    C8 => self.pieces[colour as usize][ROOK as usize] ^= 1 << D8 | 1 << A8,
+                    G1 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << F1 | 1 << H1;
+                        self.squares[H1 as usize] = None;
+                        self.squares[F1 as usize] = Some((colour, ROOK));
+                    }
+                    C1 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << D1 | 1 << A1;
+                        self.squares[A1 as usize] = None;
+                        self.squares[D1 as usize] = Some((colour, ROOK));
+                    }
+                    G8 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << F8 | 1 << H8;
+                        self.squares[H8 as usize] = None;
+                        self.squares[F8 as usize] = Some((colour, ROOK));
+                    }
+                    C8 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << D8 | 1 << A8;
+                        self.squares[A8 as usize] = None;
+                        self.squares[D8 as usize] = Some((colour, ROOK));
+                    }
                     s => panic!("can't castle to square: {}", Square(s)),
                 }
             }
@@ -308,15 +330,19 @@ impl Board {
             // Promote
             self.pieces[colour as usize][piece as usize] ^= 1 << mv.source.0;
             self.pieces[colour as usize][promotion as usize] ^= 1 << mv.destination.0;
+            self.squares[mv.source.0 as usize] = None;
+            self.squares[mv.destination.0 as usize] = Some((colour, promotion));
         } else {
             // Normal move
             self.pieces[colour as usize][piece as usize] ^=
                 1 << mv.destination.0 | 1 << mv.source.0;
+            self.squares[mv.source.0 as usize] = None;
+            self.squares[mv.destination.0 as usize] = Some((colour, piece));
         }
 
         // Capture
-        if let Some(piece) = captured_piece {
-            self.pieces[piece.0 as usize][piece.1 as usize] ^= 1 << mv.destination.0;
+        if let Some(captured) = captured_piece {
+            self.pieces[captured.0 as usize][captured.1 as usize] ^= 1 << mv.destination.0;
         };
 
         // Switch colour
@@ -341,7 +367,7 @@ impl Board {
 
     pub fn attacked(&self, attacking_colour: u8) -> u64 {
         (A1..=H8)
-            .map(|square| (square, self.get_piece_at_square(square)))
+            .map(|square| (square, self.squares[square as usize]))
             .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == attacking_colour))
             .map(|(square, piece)| match piece.unwrap().1 {
                 BISHOP => generate_bishop_moves(square, self.blockers()),
@@ -409,17 +435,6 @@ impl Board {
         println!("\n{nodes}");
     }
 
-    pub fn get_piece_at_square(&self, square: u8) -> Option<(u8, u8)> {
-        for colour in WHITE..=BLACK {
-            for piece in KING..=PAWN {
-                if self.pieces[colour as usize][piece as usize] & 1 << square != 0 {
-                    return Some((colour, piece));
-                }
-            }
-        }
-        None
-    }
-
     pub fn zobrist(&self) -> u64 {
         let mut hash = 0u64;
         if self.active_colour == BLACK {
@@ -427,7 +442,7 @@ impl Board {
         }
 
         for square in A1..=H8 {
-            if let Some((colour, piece)) = self.get_piece_at_square(square) {
+            if let Some((colour, piece)) = self.squares[square as usize] {
                 hash ^= ZOBRIST[square as usize][colour as usize][piece as usize];
             }
         }

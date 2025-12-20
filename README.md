@@ -10,6 +10,8 @@ Chess in rust
 
 `cargo test`: Uses perft to confirm correctness
 
+`cargo flamegraph --bin perf`: Produce flamegraph of perf binary for helping with optimisation
+
 ### En Crossiant
 
 1. Build in release mode
@@ -36,6 +38,7 @@ Chess in rust
 
 ### Strength
 
+- Fails to find mate in 3 for "r1bqk2r/2ppb1p1/n3P2p/8/2B1nP2/4P3/1PPP3P/RNBQK1NR w KQkq - 0 10"
 - Quiescence
 - Research opening books
 - Research endgame tablebases

@@ -41,11 +41,16 @@ impl Engine {
         let friend = self.board.pieces[self.board.active_colour as usize];
         let enemy = self.board.pieces[1 - self.board.active_colour as usize];
 
-        let queens = friend[QUEEN as usize].count_ones() - enemy[QUEEN as usize].count_ones();
-        let rooks = friend[ROOK as usize].count_ones() - enemy[ROOK as usize].count_ones();
-        let bishops = friend[BISHOP as usize].count_ones() - enemy[BISHOP as usize].count_ones();
-        let knights = friend[KNIGHT as usize].count_ones() - enemy[KNIGHT as usize].count_ones();
-        let pawns = friend[PAWN as usize].count_ones() - enemy[PAWN as usize].count_ones();
+        let queens =
+            friend[QUEEN as usize].count_ones() as i8 - enemy[QUEEN as usize].count_ones() as i8;
+        let rooks =
+            friend[ROOK as usize].count_ones() as i8 - enemy[ROOK as usize].count_ones() as i8;
+        let bishops =
+            friend[BISHOP as usize].count_ones() as i8 - enemy[BISHOP as usize].count_ones() as i8;
+        let knights =
+            friend[KNIGHT as usize].count_ones() as i8 - enemy[KNIGHT as usize].count_ones() as i8;
+        let pawns =
+            friend[PAWN as usize].count_ones() as i8 - enemy[PAWN as usize].count_ones() as i8;
 
         QUEEN_VALUE * queens as i32
             + ROOK_VALUE * rooks as i32

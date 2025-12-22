@@ -1,8 +1,11 @@
 use std::collections::VecDeque;
+use std::fmt::Write;
 use std::io;
 
 use crate::board::Board;
+use crate::constants::MATED_VALUE;
 use crate::engine::Engine;
+use crate::piece_move::Move;
 
 mod go;
 mod position;
@@ -59,5 +62,26 @@ impl Uci {
             }
         }
         Ok(())
+    }
+
+    pub fn write_info(initial_depth: usize, nodes: usize, max_eval: i32, pv: &Vec<Move>) {
+        let mut buffer = String::new();
+        write!(buffer, "info depth {initial_depth} nodes {nodes} score ").unwrap();
+
+        let mate = MATED_VALUE.abs() - max_eval.abs();
+
+        if mate <= 100 {
+            let mate = (initial_depth as i32 - mate + 1).div_ceil(2);
+            let mate = if max_eval > 0 { mate } else { -mate };
+            write!(buffer, "mate {mate} pv ").unwrap();
+        } else {
+            write!(buffer, "cp {max_eval} pv ").unwrap();
+        }
+
+        for mv in pv {
+            write!(buffer, "{mv} ").unwrap();
+        }
+
+        println!("{buffer}");
     }
 }

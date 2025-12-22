@@ -21,6 +21,7 @@ pub struct Node {
 pub struct Engine {
     pub board: Board,
     pub transposition_table: HashMap<u64, Node>,
+    pub nodes: usize,
 }
 
 impl Default for Engine {
@@ -34,6 +35,7 @@ impl Engine {
         Engine {
             board: Board::default(),
             transposition_table: HashMap::new(),
+            nodes: 0,
         }
     }
 
@@ -59,13 +61,13 @@ impl Engine {
             + PAWN_VALUE * pawns as i32
     }
 
-    pub fn start_search(&mut self, initial_depth: usize) -> (Vec<Move>, i32) {
+    pub fn search_depth(&mut self, depth: usize) -> (Vec<Move>, i32) {
         let mut max_eval = MATED_VALUE;
         let mut pv = vec![];
         let mut line = vec![];
         for mv in self.board.moves() {
             self.board.make_move(&mv);
-            let neg_eval = self.alpha_beta(MATED_VALUE, i32::MAX, initial_depth, &mut line);
+            let neg_eval = self.alpha_beta(MATED_VALUE, i32::MAX, depth, &mut line);
             let eval = -neg_eval;
             self.board.unmake_move();
 
@@ -108,6 +110,8 @@ impl Engine {
                 }
             }
         }
+
+        self.nodes += 1;
 
         let mut node_kind = NodeKind::Alpha;
 

@@ -31,8 +31,8 @@ impl Default for Engine {
 }
 
 impl Engine {
-    pub fn new() -> Engine {
-        Engine {
+    pub fn new() -> Self {
+        Self {
             board: Board::default(),
             transposition_table: HashMap::new(),
             nodes: 0,
@@ -61,14 +61,28 @@ impl Engine {
             + PAWN_VALUE * pawns as i32
     }
 
+    fn score_move(&self, mv: &Move) -> usize {
+        let (_, piece) = self.board.squares[mv.source.0 as usize]
+            .expect("valid moves always have a piece at source");
+
+        if let Some((_, victim)) = self.board.squares[mv.destination.0 as usize] {
+            // Captures
+            MVV_LVA[piece as usize][victim as usize] + 10_000
+        } else {
+            0
+        }
+    }
+
     pub fn search_depth(&mut self, depth: usize) -> (Vec<Move>, i32) {
         let mut max_eval = MATED_VALUE;
         let mut pv = vec![];
         let mut line = vec![];
-        for mv in self.board.moves() {
+
+        let mut sorted_moves = self.board.moves();
+        sorted_moves.sort_by(|a, b| self.score_move(a).cmp(&self.score_move(b)));
+        for mv in sorted_moves {
             self.board.make_move(&mv);
-            let neg_eval = self.alpha_beta(MATED_VALUE, i32::MAX, depth, &mut line);
-            let eval = -neg_eval;
+            let eval = -self.alpha_beta(MATED_VALUE, i32::MAX, depth, &mut line);
             self.board.unmake_move();
 
             if eval > max_eval {
@@ -76,7 +90,6 @@ impl Engine {
                 update_line(&mut pv, mv, &line);
             }
         }
-
         (pv, max_eval)
     }
 
@@ -89,9 +102,9 @@ impl Engine {
     ) -> i32 {
         // Check transposition table for existing entry
         let hash = self.board.zobrist();
-        let node = self.transposition_table.get(&hash);
+        let table_node = self.transposition_table.get(&hash);
 
-        if let Some(node) = node
+        if let Some(node) = table_node
             && node.depth >= depth
         {
             match node.kind {
@@ -138,27 +151,30 @@ impl Engine {
 
         let mut line = vec![];
 
-        for mv in moves {
+let mut sorted_moves = self.board.moves();
+        sorted_moves.sort_by(|a, b| self.score_move(b).cmp(&self.score_move(a)));
+        for mv in sorted_moves {
             self.board.make_move(&mv);
-            let neg_score = self.alpha_beta(-beta, -alpha, depth - 1, &mut line);
-            let score = -neg_score;
+            let eval = -self.alpha_beta(-beta, -alpha, depth - 1, &mut line);
+
+            if eval >= beta {
+            let hash = self.board.zobrist();
             self.board.unmake_move();
 
-            if score >= beta {
                 let node = Node {
                     depth,
                     score: beta,
                     kind: NodeKind::Beta,
                 };
-
-                let hash = self.board.zobrist();
                 self.transposition_table.insert(hash, node);
                 return beta;
             }
 
-            if score > alpha {
+self.board.unmake_move();
+
+            if eval > alpha {
                 node_kind = NodeKind::Exact;
-                alpha = score;
+                alpha = eval;
                 update_line(parent_line, mv, &line);
             }
         }

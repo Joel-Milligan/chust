@@ -20,7 +20,8 @@ Chess in rust
 
 ## Tasks
 
-1. Improve performance of searching (Searching even >3 ply already starts taking seconds)
+1. Move ordering
+2. Quiensence search
 
 ### Tech Debt
 
@@ -31,9 +32,9 @@ Chess in rust
 
 ### Performance
 
-- Iterative search should end early if mate is found
-- pv using transposition table
 - Move ordering
+    - Iterative search should end early if mate is found
+- pv using transposition table
 - Pre-compute lookup tables for moves
 
 ### Strength
@@ -43,8 +44,11 @@ Chess in rust
 - Research opening books
 - Research endgame tablebases
 
-### Features
+### UCI
 
 - Enough UCI to play on Lichess
+
+### Features
+
 - Algebraic notation
 - PGN

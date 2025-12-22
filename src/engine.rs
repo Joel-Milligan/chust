@@ -173,9 +173,12 @@ impl Engine {
                 let hash = self.board.zobrist();
                 self.board.unmake_move();
 
-                self.killer_moves.1[self.board.half_moves as usize] =
-                    self.killer_moves.0[self.board.half_moves as usize];
-                self.killer_moves.0[self.board.half_moves as usize] = Some(mv);
+                // Only update on quiet moves
+                if self.board.squares[mv.destination.0 as usize].is_none() {
+                    let ply = self.board.half_moves as usize;
+                    self.killer_moves.1[ply] = self.killer_moves.0[ply];
+                    self.killer_moves.0[ply] = Some(mv);
+                }
 
                 let node = Node {
                     depth,
@@ -189,9 +192,11 @@ impl Engine {
             self.board.unmake_move();
 
             if eval > alpha {
-                let (_, piece) = self.board.squares[mv.source.0 as usize]
-                    .expect("all valid moves have a piece at source");
-                self.history_moves[piece as usize][mv.destination.0 as usize] += depth;
+                if self.board.squares[mv.destination.0 as usize].is_none() {
+                    let (_, piece) = self.board.squares[mv.source.0 as usize]
+                        .expect("all valid moves have a piece at source");
+                    self.history_moves[piece as usize][mv.destination.0 as usize] += depth;
+                }
 
                 node_kind = NodeKind::Exact;
                 alpha = eval;

@@ -69,6 +69,7 @@ impl Engine {
         let (_, piece) = self.board.squares[mv.source.0 as usize]
             .expect("valid moves always have a piece at source");
 
+        // FIXME: Does not identify en passant captures
         if let Some((_, victim)) = self.board.squares[mv.destination.0 as usize] {
             // Captures
             MVV_LVA[piece as usize][victim as usize] + 10_000
@@ -140,7 +141,7 @@ impl Engine {
         let mut node_kind = NodeKind::Alpha;
 
         if depth == 0 {
-            let score = self.evaluate();
+            let score = self.quiescence(alpha, beta);
             let node = Node {
                 depth,
                 score,
@@ -205,6 +206,43 @@ impl Engine {
         };
         let hash = self.board.zobrist();
         self.transposition_table.insert(hash, node);
+
+        alpha
+    }
+
+    fn quiescence(&mut self, mut alpha: i32, beta: i32) -> i32 {
+        self.nodes += 1;
+
+        let eval = self.evaluate();
+
+        if eval >= beta {
+            return beta;
+        }
+
+        if eval > alpha {
+            alpha = eval;
+        }
+
+        let moves = self.board.moves();
+        // FIXME: Does not identify en passant captures
+        let captures = moves
+            .into_iter()
+            .filter(|x| self.board.squares[x.destination.0 as usize].is_some())
+            .collect::<Vec<_>>();
+
+        for mv in captures {
+            self.board.make_move(&mv);
+            let eval = -self.quiescence(-beta, -alpha);
+            self.board.unmake_move();
+
+            if eval >= beta {
+                return beta;
+            }
+
+            if eval > alpha {
+                alpha = eval;
+            }
+        }
 
         alpha
     }

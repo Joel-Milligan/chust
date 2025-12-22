@@ -65,19 +65,19 @@ impl Uci {
     }
 
     pub fn write_info(
-        initial_depth: usize,
+        depth: usize,
         nodes: usize,
         max_eval: i32,
         pv_length: usize,
         pv_table: &[Option<Move>; MAX_PLY],
     ) {
         let mut buffer = String::new();
-        write!(buffer, "info depth {initial_depth} nodes {nodes} score ").unwrap();
+        write!(buffer, "info depth {depth} nodes {nodes} score ").unwrap();
 
         let mate = MATED_VALUE.abs() - max_eval.abs();
 
         if mate <= 100 {
-            let mate = (initial_depth as i32 - mate + 1).div_ceil(2);
+            let mate = (depth as i32 - mate + 1).div_ceil(2);
             let mate = if max_eval > 0 { mate } else { -mate };
             write!(buffer, "mate {mate} pv ").unwrap();
         } else {

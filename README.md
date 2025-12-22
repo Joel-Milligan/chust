@@ -20,8 +20,7 @@ Chess in rust
 
 ## Tasks
 
-1. Move ordering
-2. Quiensence search
+1. Broken: Fix the seeming lack of updating of PV at higher depths
 
 ### Tech Debt
 

@@ -5,12 +5,12 @@ pub const WHITE: u8 = 0;
 pub const BLACK: u8 = 1;
 
 // Piece Types
-pub const KING: u8 = 0;
-pub const QUEEN: u8 = 1;
-pub const ROOK: u8 = 2;
-pub const BISHOP: u8 = 3;
-pub const KNIGHT: u8 = 4;
-pub const PAWN: u8 = 5;
+pub const PAWN: u8 = 0;
+pub const KNIGHT: u8 = 1;
+pub const BISHOP: u8 = 2;
+pub const ROOK: u8 = 3;
+pub const QUEEN: u8 = 4;
+pub const KING: u8 = 5;
 
 // Castling
 pub const WHITE_KING_SIDE: u8 = 1;
@@ -21,10 +21,80 @@ pub const BLACK_QUEEN_SIDE: u8 = 8;
 // Engine Values
 pub const QUEEN_VALUE: i32 = 900;
 pub const ROOK_VALUE: i32 = 500;
-pub const BISHOP_VALUE: i32 = 300;
+pub const BISHOP_VALUE: i32 = 350;
 pub const KNIGHT_VALUE: i32 = 300;
 pub const PAWN_VALUE: i32 = 100;
 pub const MATED_VALUE: i32 = i32::MIN / 2;
+
+/// Most valuable victim - least valuable attacker: [Victim][Attacker]
+pub const MVV_LVA: [[i32; 6]; 6] = [
+    [105, 205, 305, 405, 505, 605],
+    [104, 204, 304, 404, 504, 604],
+    [103, 203, 303, 403, 503, 603],
+    [102, 202, 302, 402, 502, 602],
+    [101, 201, 301, 401, 501, 601],
+    [100, 200, 300, 400, 500, 600],
+];
+
+#[rustfmt::skip]
+pub const PAWN_SCORE: [i32; 64] = [
+    90,  90,  90,  90,  90,  90,  90,  90,
+    30,  30,  30,  40,  40,  30,  30,  30,
+    20,  20,  20,  30,  30,  30,  20,  20,
+    10,  10,  10,  20,  20,  10,  10,  10,
+     5,   5,  10,  20,  20,   5,   5,   5,
+     0,   0,   0,   5,   5,   0,   0,   0,
+     0,   0,   0, -10, -10,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0
+];
+
+#[rustfmt::skip]
+pub const KNIGHT_SCORE: [i32; 64] = [
+    -5,   0,   0,   0,   0,   0,   0,  -5,
+    -5,   0,   0,  10,  10,   0,   0,  -5,
+    -5,   5,  20,  20,  20,  20,   5,  -5,
+    -5,  10,  20,  30,  30,  20,  10,  -5,
+    -5,  10,  20,  30,  30,  20,  10,  -5,
+    -5,   5,  20,  10,  10,  20,   5,  -5,
+    -5,   0,   0,   0,   0,   0,   0,  -5,
+    -5, -10,   0,   0,   0,   0, -10,  -5
+];
+
+#[rustfmt::skip]
+pub const BISHOP_SCORE: [i32; 64] = [
+     0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   0,  10,  10,   0,   0,   0,
+     0,   0,  10,  20,  20,  10,   0,   0,
+     0,   0,  10,  20,  20,  10,   0,   0,
+     0,  10,   0,   0,   0,   0,  10,   0,
+     0,  30,   0,   0,   0,   0,  30,   0,
+     0,   0, -10,   0,   0, -10,   0,   0
+];
+
+#[rustfmt::skip]
+pub const ROOK_SCORE: [i32; 64] = [
+    50,  50,  50,  50,  50,  50,  50,  50,
+    50,  50,  50,  50,  50,  50,  50,  50,
+     0,   0,  10,  20,  20,  10,   0,   0,
+     0,   0,  10,  20,  20,  10,   0,   0,
+     0,   0,  10,  20,  20,  10,   0,   0,
+     0,   0,  10,  20,  20,  10,   0,   0,
+     0,   0,  10,  20,  20,  10,   0,   0,
+     0,   0,   0,  20,  20,   0,   0,   0
+];
+
+#[rustfmt::skip]
+pub const KING_SCORE: [i32; 64] = [
+     0,   0,   0,   0,   0,   0,   0,   0,
+     0,   0,   5,   5,   5,   5,   0,   0,
+     0,   5,   5,  10,  10,   5,   5,   0,
+     0,   5,  10,  20,  20,  10,   5,   0,
+     0,   5,  10,  20,  20,  10,   5,   0,
+     0,   0,   5,  10,  10,   5,   0,   0,
+     0,   5,   5,  -5,  -5,   0,   5,   0,
+     0,   0,   5,   0, -15,   0,  10,   0
+];
 
 // Files
 pub const A_FILE: u64 = 0x0101010101010101;
@@ -121,14 +191,3 @@ pub static ZOBRIST: LazyLock<[[[u64; 6]; 2]; 64]> = LazyLock::new(|| {
 
     table
 });
-
-/// Most valuable victim - least valuable attacker
-/// Indexed by [Victim][Attacker]
-pub const MVV_LVA: [[usize; 6]; 6] = [
-    [105, 205, 305, 405, 505, 605],
-    [104, 204, 304, 404, 504, 604],
-    [103, 203, 303, 403, 503, 603],
-    [102, 202, 302, 402, 502, 602],
-    [101, 201, 301, 401, 501, 601],
-    [100, 200, 300, 400, 500, 600],
-];

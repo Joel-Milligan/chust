@@ -1,26 +1,17 @@
 #![feature(int_roundings)]
 use chust::board::Board;
 use chust::engine::Engine;
-use chust::uci::Uci;
+
+#[allow(dead_code)]
+const MATE_IN_THREE: &'static str = "rn3r1k/p3qp2/bp2p2p/3pP3/P2NRQ2/1Pb2NPP/5PB1/2R3K1 w - - 1 22";
+#[allow(dead_code)]
+const TRICKY: &'static str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+#[allow(dead_code)]
+const BROKEN_MATE: &'static str =
+    "r1bqk2r/2ppb1p1/n3P2p/8/2B1nP2/4P3/1PPP3P/RNBQK1NR w KQkq - 0 10";
 
 fn main() {
-    let board =
-        Board::from_fen("rn3r1k/p3qp2/bp2p2p/3pP3/P2NRQ2/1Pb2NPP/5PB1/2R3K1 w - - 1 22").unwrap();
     let mut engine = Engine::new();
-    engine.board = board;
-
-    for depth in 0..=5 {
-        let eval = engine.search_depth(depth);
-        Uci::write_info(
-            depth,
-            engine.nodes,
-            eval,
-            engine.pv_length[0],
-            &engine.pv_table[0],
-        );
-    }
-
-    if let Some(best_move) = engine.pv_table[0][0] {
-        println!("bestmove {}", best_move);
-    }
+    engine.board = Board::from_fen(MATE_IN_THREE).unwrap();
+    engine.search_depth(20);
 }

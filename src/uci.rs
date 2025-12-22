@@ -4,7 +4,7 @@ use std::io;
 
 use crate::board::Board;
 use crate::constants::MATED_VALUE;
-use crate::engine::Engine;
+use crate::engine::{Engine, MAX_PLY};
 use crate::piece_move::Move;
 
 mod go;
@@ -64,7 +64,13 @@ impl Uci {
         Ok(())
     }
 
-    pub fn write_info(initial_depth: usize, nodes: usize, max_eval: i32, pv: &Vec<Move>) {
+    pub fn write_info(
+        initial_depth: usize,
+        nodes: usize,
+        max_eval: i32,
+        pv_length: usize,
+        pv_table: &[Option<Move>; MAX_PLY],
+    ) {
         let mut buffer = String::new();
         write!(buffer, "info depth {initial_depth} nodes {nodes} score ").unwrap();
 
@@ -78,8 +84,8 @@ impl Uci {
             write!(buffer, "cp {max_eval} pv ").unwrap();
         }
 
-        for mv in pv {
-            write!(buffer, "{mv} ").unwrap();
+        for i in 0..pv_length {
+            write!(buffer, "{} ", pv_table[i].unwrap()).unwrap();
         }
 
         println!("{buffer}");

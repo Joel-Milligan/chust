@@ -9,14 +9,18 @@ fn main() {
     let mut engine = Engine::new();
     engine.board = board;
 
-    let mut best_move = None;
     for depth in 0..=5 {
-        let (pv, eval) = engine.search_depth(depth);
-        best_move = Some(pv.first().unwrap().clone());
-        Uci::write_info(depth, engine.nodes, eval, &pv);
+        let eval = engine.search_depth(depth);
+        Uci::write_info(
+            depth,
+            engine.nodes,
+            eval,
+            engine.pv_length[0],
+            &engine.pv_table[0],
+        );
     }
 
-    if let Some(best_move) = best_move {
+    if let Some(best_move) = engine.pv_table[0][0] {
         println!("bestmove {}", best_move);
     }
 }

@@ -4,6 +4,8 @@ use crate::board::Board;
 use crate::constants::*;
 use crate::piece_move::Move;
 
+pub const MAX_PLY: usize = 246;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum NodeKind {
     Exact,
@@ -22,8 +24,11 @@ pub struct Engine {
     pub board: Board,
     pub transposition_table: HashMap<u64, Node>,
     pub nodes: usize,
-    pub killer_moves: ([Option<Move>; 246], [Option<Move>; 246]),
+    pub ply: usize,
+    pub killer_moves: ([Option<Move>; MAX_PLY], [Option<Move>; MAX_PLY]),
     pub history_moves: [[usize; 64]; 12],
+    pub pv_length: [usize; MAX_PLY],
+    pub pv_table: [[Option<Move>; MAX_PLY]; MAX_PLY],
 }
 
 impl Default for Engine {
@@ -38,8 +43,11 @@ impl Engine {
             board: Board::default(),
             transposition_table: HashMap::new(),
             nodes: 0,
-            killer_moves: ([None; 246], [None; 246]),
+            ply: 0,
+            killer_moves: ([None; MAX_PLY], [None; MAX_PLY]),
             history_moves: [[0; 64]; 12],
+            pv_length: [0; MAX_PLY],
+            pv_table: [[None; MAX_PLY]; MAX_PLY],
         }
     }
 
@@ -85,33 +93,32 @@ impl Engine {
         }
     }
 
-    pub fn search_depth(&mut self, depth: usize) -> (Vec<Move>, i32) {
+    pub fn search_depth(&mut self, depth: usize) -> i32 {
         let mut max_eval = MATED_VALUE;
-        let mut pv = vec![];
-        let mut line = vec![];
-
         let mut sorted_moves = self.board.moves();
         sorted_moves.sort_by(|a, b| self.score_move(a).cmp(&self.score_move(b)));
         for mv in sorted_moves {
+            self.ply += 1;
             self.board.make_move(&mv);
-            let eval = -self.alpha_beta(MATED_VALUE, i32::MAX, depth, &mut line);
+            let eval = -self.alpha_beta(MATED_VALUE, i32::MAX, depth);
             self.board.unmake_move();
+            self.ply -= 1;
 
             if eval > max_eval {
                 max_eval = eval;
-                update_line(&mut pv, mv, &line);
+                self.pv_table[self.ply][self.ply] = Some(mv);
+                for next_ply in (self.ply + 1)..self.pv_length[self.ply + 1] {
+                    self.pv_table[self.ply][next_ply] = self.pv_table[self.ply + 1][next_ply];
+                }
+                self.pv_length[self.ply] = self.pv_length[self.ply + 1];
             }
         }
-        (pv, max_eval)
+        max_eval
     }
 
-    fn alpha_beta(
-        &mut self,
-        alpha: i32,
-        beta: i32,
-        depth: usize,
-        parent_line: &mut Vec<Move>,
-    ) -> i32 {
+    fn alpha_beta(&mut self, mut alpha: i32, beta: i32, depth: usize) -> i32 {
+        self.pv_length[self.ply] = self.ply;
+
         // Check transposition table for existing entry
         let hash = self.board.zobrist();
         let table_node = self.transposition_table.get(&hash);
@@ -151,8 +158,6 @@ impl Engine {
             return score;
         }
 
-        let mut alpha = alpha;
-
         let moves = self.board.moves();
         if moves.is_empty() {
             if self.board.in_check() {
@@ -161,23 +166,22 @@ impl Engine {
             return 0;
         }
 
-        let mut line = vec![];
-
         let mut sorted_moves = self.board.moves();
         sorted_moves.sort_by(|a, b| self.score_move(b).cmp(&self.score_move(a)));
         for mv in sorted_moves {
             self.board.make_move(&mv);
-            let eval = -self.alpha_beta(-beta, -alpha, depth - 1, &mut line);
+            self.ply += 1;
+            let eval = -self.alpha_beta(-beta, -alpha, depth - 1);
 
             if eval >= beta {
                 let hash = self.board.zobrist();
                 self.board.unmake_move();
+                self.ply -= 1;
 
                 // Only update on quiet moves
                 if self.board.squares[mv.destination.0 as usize].is_none() {
-                    let ply = self.board.half_moves as usize;
-                    self.killer_moves.1[ply] = self.killer_moves.0[ply];
-                    self.killer_moves.0[ply] = Some(mv);
+                    self.killer_moves.1[self.ply] = self.killer_moves.0[self.ply];
+                    self.killer_moves.0[self.ply] = Some(mv);
                 }
 
                 let node = Node {
@@ -190,6 +194,7 @@ impl Engine {
             }
 
             self.board.unmake_move();
+            self.ply -= 1;
 
             if eval > alpha {
                 if self.board.squares[mv.destination.0 as usize].is_none() {
@@ -200,7 +205,12 @@ impl Engine {
 
                 node_kind = NodeKind::Exact;
                 alpha = eval;
-                update_line(parent_line, mv, &line);
+
+                self.pv_table[self.ply][self.ply] = Some(mv);
+                for next_ply in (self.ply + 1)..self.pv_length[self.ply + 1] {
+                    self.pv_table[self.ply][next_ply] = self.pv_table[self.ply + 1][next_ply];
+                }
+                self.pv_length[self.ply] = self.pv_length[self.ply + 1];
             }
         }
 
@@ -237,25 +247,18 @@ impl Engine {
 
         for mv in captures {
             self.board.make_move(&mv);
+            self.ply += 1;
             let eval = -self.quiescence(-beta, -alpha);
             self.board.unmake_move();
+            self.ply -= 1;
 
             if eval >= beta {
                 return beta;
             }
-
             if eval > alpha {
                 alpha = eval;
             }
         }
-
         alpha
     }
-}
-
-fn update_line(line: &mut Vec<Move>, mv: Move, child_line: &Vec<Move>) {
-    let mut new_line = Vec::with_capacity(child_line.len() + 1);
-    new_line.push(mv);
-    new_line.extend(child_line.clone());
-    *line = new_line;
 }

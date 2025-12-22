@@ -22,6 +22,8 @@ pub struct Engine {
     pub board: Board,
     pub transposition_table: HashMap<u64, Node>,
     pub nodes: usize,
+    pub killer_moves: ([Option<Move>; 246], [Option<Move>; 246]),
+    pub history_moves: [[usize; 64]; 12],
 }
 
 impl Default for Engine {
@@ -36,6 +38,8 @@ impl Engine {
             board: Board::default(),
             transposition_table: HashMap::new(),
             nodes: 0,
+            killer_moves: ([None; 246], [None; 246]),
+            history_moves: [[0; 64]; 12],
         }
     }
 
@@ -69,7 +73,14 @@ impl Engine {
             // Captures
             MVV_LVA[piece as usize][victim as usize] + 10_000
         } else {
-            0
+            // Quiet
+            if self.killer_moves.0[self.board.half_moves as usize] == Some(*mv) {
+                9000
+            } else if self.killer_moves.1[self.board.half_moves as usize] == Some(*mv) {
+                8000
+            } else {
+                self.history_moves[piece as usize][mv.destination.0 as usize]
+            }
         }
     }
 
@@ -151,15 +162,19 @@ impl Engine {
 
         let mut line = vec![];
 
-let mut sorted_moves = self.board.moves();
+        let mut sorted_moves = self.board.moves();
         sorted_moves.sort_by(|a, b| self.score_move(b).cmp(&self.score_move(a)));
         for mv in sorted_moves {
             self.board.make_move(&mv);
             let eval = -self.alpha_beta(-beta, -alpha, depth - 1, &mut line);
 
             if eval >= beta {
-            let hash = self.board.zobrist();
-            self.board.unmake_move();
+                let hash = self.board.zobrist();
+                self.board.unmake_move();
+
+                self.killer_moves.1[self.board.half_moves as usize] =
+                    self.killer_moves.0[self.board.half_moves as usize];
+                self.killer_moves.0[self.board.half_moves as usize] = Some(mv);
 
                 let node = Node {
                     depth,
@@ -170,9 +185,13 @@ let mut sorted_moves = self.board.moves();
                 return beta;
             }
 
-self.board.unmake_move();
+            self.board.unmake_move();
 
             if eval > alpha {
+                let (_, piece) = self.board.squares[mv.source.0 as usize]
+                    .expect("all valid moves have a piece at source");
+                self.history_moves[piece as usize][mv.destination.0 as usize] += depth;
+
                 node_kind = NodeKind::Exact;
                 alpha = eval;
                 update_line(parent_line, mv, &line);

@@ -25,7 +25,7 @@ pub struct Board {
     castling: u8,
     en_passant: Option<u8>,
     /// Number of half moves since last capture or pawn push, used for the fifty-move rule
-    half_moves: u8,
+    pub half_moves: u8,
     full_moves: u8,
     previous_position: Option<Box<Board>>,
 }

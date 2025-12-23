@@ -3,7 +3,7 @@ use std::fmt::Write;
 use std::io;
 
 use crate::board::Board;
-use crate::constants::MATED_VALUE;
+use crate::constants::MATE_VALUE;
 use crate::engine::{Engine, MAX_PLY};
 use crate::piece_move::Move;
 
@@ -67,21 +67,21 @@ impl Uci {
     pub fn write_info(
         depth: usize,
         nodes: usize,
-        max_eval: i32,
+        score: i32,
         pv_length: usize,
         pv_table: &[Option<Move>; MAX_PLY],
     ) {
         let mut buffer = String::new();
         write!(buffer, "info depth {depth} nodes {nodes} score ").unwrap();
 
-        let mate = MATED_VALUE.abs() - max_eval.abs();
+        let dist = MATE_VALUE - score.abs();
 
-        if mate <= 100 {
-            let mate = (depth as i32 - mate + 1).div_ceil(2);
-            let mate = if max_eval > 0 { mate } else { -mate };
+        if dist <= MAX_PLY as i32 {
+            let dist = if score > 0 { dist } else { -dist };
+            let mate = if dist > 0 { dist + 1 } else { dist } / 2;
             write!(buffer, "mate {mate} pv ").unwrap();
         } else {
-            write!(buffer, "cp {max_eval} pv ").unwrap();
+            write!(buffer, "cp {score} pv ").unwrap();
         }
 
         for i in 0..pv_length {

@@ -134,7 +134,7 @@ impl Engine {
         for current_depth in 1..=depth {
             self.transposition_table.clear();
 
-            let eval = self.alpha_beta(MATED_VALUE, i32::MAX, current_depth);
+            let eval = self.alpha_beta(-20_000, 20_000, current_depth);
             Uci::write_info(
                 current_depth,
                 self.nodes,
@@ -206,7 +206,7 @@ impl Engine {
         let moves = self.board.moves();
         if moves.is_empty() {
             if self.board.in_check() {
-                return MATED_VALUE + depth as i32;
+                return -MATE_VALUE + self.ply as i32;
             }
             return 0;
         }
@@ -272,7 +272,7 @@ impl Engine {
         let moves = self.board.moves();
         if moves.is_empty() {
             if self.board.in_check() {
-                return MATED_VALUE as i32;
+                return -MATE_VALUE + self.ply as i32;
             }
             return 0;
         }

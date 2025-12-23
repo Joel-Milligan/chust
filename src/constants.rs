@@ -24,7 +24,7 @@ pub const ROOK_VALUE: i32 = 500;
 pub const BISHOP_VALUE: i32 = 350;
 pub const KNIGHT_VALUE: i32 = 300;
 pub const PAWN_VALUE: i32 = 100;
-pub const MATED_VALUE: i32 = i32::MIN / 2;
+pub const MATE_VALUE: i32 = 10_000;
 
 /// Most valuable victim - least valuable attacker: [Victim][Attacker]
 pub const MVV_LVA: [[i32; 6]; 6] = [

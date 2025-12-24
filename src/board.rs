@@ -1,3 +1,7 @@
+use std::fmt::Display;
+use std::hash::Hash;
+use std::str::FromStr;
+
 use bitvec::prelude::*;
 use thiserror::Error;
 
@@ -9,9 +13,6 @@ use crate::calculated::rook::generate_rook_moves;
 use crate::constants::*;
 use crate::piece_move::Move;
 use crate::square::Square;
-
-use std::fmt::Display;
-use std::str::FromStr;
 
 #[derive(Error, Debug)]
 #[error("poorly formatted fen string")]
@@ -64,6 +65,15 @@ impl Display for Board {
             writeln!(f)?;
         }
         write!(f, "  a b c d e f g h")
+    }
+}
+
+impl Hash for Board {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.pieces.hash(state);
+        self.active_colour.hash(state);
+        self.castling.hash(state);
+        self.en_passant.hash(state);
     }
 }
 
@@ -401,9 +411,7 @@ impl Board {
     pub fn perft(&mut self, depth: usize) -> usize {
         let moves = self.moves();
 
-        if depth == 0 {
-            1
-        } else if depth == 1 {
+        if depth == 1 {
             moves.len()
         } else {
             let mut nodes = 0;
@@ -446,6 +454,8 @@ impl Board {
                 hash ^= ZOBRIST[square as usize][colour as usize][piece as usize];
             }
         }
+
+        // TODO: Need to also hash en-passant and castling rights
 
         hash
     }

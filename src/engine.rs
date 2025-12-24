@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::hash::DefaultHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use crate::board::Board;
 use crate::constants::*;
@@ -8,22 +11,59 @@ use crate::uci::Uci;
 pub const MAX_PLY: usize = 64;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum NodeKind {
-    Exact,
-    Alpha,
-    Beta,
+pub enum Score {
+    Exact(i32),
+    Alpha(i32),
+    Beta(i32),
 }
 
 #[derive(Debug)]
 pub struct Node {
     depth: usize,
-    score: i32,
-    kind: NodeKind,
+    score: Score,
+}
+
+#[derive(Debug)]
+pub struct TranspositionTable(HashMap<u64, Node>);
+
+impl TranspositionTable {
+    fn new() -> Self {
+        TranspositionTable(HashMap::new())
+    }
+
+    fn get(&self, board: &Board, depth: usize, alpha: i32, beta: i32) -> Option<i32> {
+        let mut hasher = DefaultHasher::new();
+        board.hash(&mut hasher);
+        let hash = hasher.finish();
+        if let Some(node) = self.0.get(&hash) {
+            if node.depth >= depth {
+                // println!("Hit");
+                return match node.score {
+                    Score::Exact(score) => Some(score),
+                    Score::Alpha(score) if score <= alpha => Some(alpha),
+                    Score::Beta(score) if score >= beta => Some(beta),
+                    _ => None,
+                };
+            }
+        }
+        None
+    }
+
+    fn insert(&mut self, board: &Board, depth: usize, score: Score) {
+        let mut hasher = DefaultHasher::new();
+        board.hash(&mut hasher);
+        let hash = hasher.finish();
+        self.0.insert(hash, Node { depth, score });
+    }
+
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
 }
 
 pub struct Engine {
     pub board: Board,
-    pub transposition_table: HashMap<u64, Node>,
+    pub tt: TranspositionTable,
     pub nodes: usize,
     pub ply: usize,
     pub killer_moves: ([Option<Move>; MAX_PLY], [Option<Move>; MAX_PLY]),
@@ -42,7 +82,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             board: Board::default(),
-            transposition_table: HashMap::new(),
+            tt: TranspositionTable::new(),
             nodes: 0,
             ply: 0,
             killer_moves: ([None; MAX_PLY], [None; MAX_PLY]),
@@ -132,9 +172,7 @@ impl Engine {
         self.pv_table = [[None; MAX_PLY]; MAX_PLY];
 
         for current_depth in 1..=depth {
-            self.transposition_table.clear();
-
-            let eval = self.alpha_beta(-20_000, 20_000, current_depth);
+            let eval = self.alpha_beta(current_depth, -20_000, 20_000);
             Uci::write_info(
                 current_depth,
                 self.nodes,
@@ -142,18 +180,6 @@ impl Engine {
                 self.pv_length[0],
                 &self.pv_table[0],
             );
-
-            // for row in self.pv_table {
-            //     for col in row {
-            //         if let Some(mv) = col {
-            //             print!("{mv} ");
-            //         } else {
-            //             print!("---- ");
-            //         }
-            //     }
-            //     println!();
-            // }
-            // println!();
         }
 
         if let Some(best_move) = self.pv_table[0][0] {
@@ -161,45 +187,20 @@ impl Engine {
         }
     }
 
-    fn alpha_beta(&mut self, mut alpha: i32, beta: i32, depth: usize) -> i32 {
-        // Check transposition table for existing entry
-        let hash = self.board.zobrist();
-        let table_node = self.transposition_table.get(&hash);
-
-        if let Some(node) = table_node
-            && node.depth >= depth
-        {
-            match node.kind {
-                NodeKind::Exact => {
-                    return node.score;
-                }
-                NodeKind::Alpha => {
-                    if node.score <= alpha {
-                        return alpha;
-                    }
-                }
-                NodeKind::Beta => {
-                    if node.score >= beta {
-                        return beta;
-                    }
-                }
-            }
+    fn alpha_beta(&mut self, depth: usize, mut alpha: i32, beta: i32) -> i32 {
+        if let Some(score) = self.tt.get(&self.board, depth, alpha, beta) {
+            return score;
         }
 
         self.pv_length[self.ply] = self.ply;
 
-        let mut node_kind = NodeKind::Alpha;
-
         if depth == 0 {
-            let score = self.quiescence(alpha, beta);
-            let node = Node {
-                depth,
-                score,
-                kind: NodeKind::Exact,
-            };
-            self.transposition_table.insert(hash, node);
-            return score;
+            let eval = self.quiescence(alpha, beta);
+            self.tt.insert(&self.board, depth, Score::Exact(eval));
+            return eval;
         }
+
+        let mut score = Score::Alpha(alpha);
 
         self.nodes += 1;
 
@@ -216,7 +217,7 @@ impl Engine {
         for mv in sorted_moves {
             self.board.make_move(&mv);
             self.ply += 1;
-            let eval = -self.alpha_beta(-beta, -alpha, depth - 1);
+            let eval = -self.alpha_beta(depth - 1, -beta, -alpha);
             self.board.unmake_move();
             self.ply -= 1;
 
@@ -227,8 +228,8 @@ impl Engine {
                     self.history_moves[piece as usize][mv.destination.0 as usize] += depth as i32;
                 }
 
-                node_kind = NodeKind::Exact;
                 alpha = eval;
+                score = Score::Exact(alpha);
 
                 self.pv_table[self.ply][self.ply] = Some(mv);
                 for next_ply in (self.ply + 1)..self.pv_length[self.ply + 1] {
@@ -237,13 +238,7 @@ impl Engine {
                 self.pv_length[self.ply] = self.pv_length[self.ply + 1];
 
                 if eval >= beta {
-                    let hash = self.board.zobrist();
-                    let node = Node {
-                        depth,
-                        score: beta,
-                        kind: NodeKind::Beta,
-                    };
-                    self.transposition_table.insert(hash, node);
+                    self.tt.insert(&self.board, depth, Score::Beta(beta));
 
                     if self.board.squares[mv.destination.0 as usize].is_none() {
                         self.killer_moves.1[self.ply] = self.killer_moves.0[self.ply];
@@ -255,13 +250,7 @@ impl Engine {
             }
         }
 
-        let node = Node {
-            depth,
-            score: alpha,
-            kind: node_kind,
-        };
-        let hash = self.board.zobrist();
-        self.transposition_table.insert(hash, node);
+        self.tt.insert(&self.board, depth, score);
 
         alpha
     }

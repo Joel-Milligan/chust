@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use chust::board::Board;
 use chust::engine::Engine;
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -18,7 +16,7 @@ pub fn search_bench(c: &mut Criterion) {
         b.iter(|| {
             engine.search_depth(std::hint::black_box(3));
             // Clear table to prevent information being kept between runs
-            engine.transposition_table = HashMap::new();
+            engine.tt.clear();
         })
     });
 }

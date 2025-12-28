@@ -69,3 +69,18 @@ impl Move {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoryMove {
+    pub moved: (u8, u8),
+    pub source: Square,
+    pub destination: Square,
+    pub captured: Option<(u8, u8)>,
+    pub promotion: Option<u8>,
+    pub previous_en_passant_square: Option<u8>,
+    pub en_passant_capture: bool,
+    /// Bits representing which castling rights were removed by this move
+    pub removed_castling_rights: u8,
+    pub previous_full_moves: u8,
+    pub previous_half_moves: u8,
+}

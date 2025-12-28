@@ -11,7 +11,7 @@ use crate::calculated::knight::generate_knight_moves;
 use crate::calculated::pawn::{PAWN_ATTACKS, generate_pawn_moves};
 use crate::calculated::rook::generate_rook_moves;
 use crate::constants::*;
-use crate::piece_move::Move;
+use crate::piece_move::{HistoryMove, Move};
 use crate::square::Square;
 
 #[derive(Error, Debug)]
@@ -28,7 +28,7 @@ pub struct Board {
     /// Number of half moves since last capture or pawn push, used for the fifty-move rule
     pub half_moves: u8,
     full_moves: u8,
-    previous_position: Option<Box<Board>>,
+    history: Vec<HistoryMove>,
 }
 
 impl Default for Board {
@@ -151,7 +151,7 @@ impl Board {
             en_passant,
             half_moves,
             full_moves,
-            previous_position: None,
+            history: Vec::new(),
         })
     }
 
@@ -249,8 +249,10 @@ impl Board {
     }
 
     pub fn make_move(&mut self, mv: &Move) {
-        // Save current position for unmaking moves
-        self.previous_position = Some(Box::new(self.clone()));
+        // Data needed for saving history move
+        let prev_castling = self.castling;
+        let prev_en_passant = self.en_passant;
+        let mut captured_en_passant = false;
 
         // Pieces
         let (colour, piece) = self.squares[mv.source.0 as usize].unwrap();
@@ -267,6 +269,7 @@ impl Board {
                     self.pieces[WHITE as usize][PAWN as usize] ^= 1 << (mv.destination.0 + 8);
                     self.squares[mv.destination.0 as usize + 8] = None;
                 }
+                captured_en_passant = true;
             }
 
             if mv.source.0.abs_diff(mv.destination.0) == 16 {
@@ -367,12 +370,108 @@ impl Board {
         } else {
             self.half_moves += 1;
         }
+
+        self.history.push(HistoryMove {
+            moved: (colour, piece),
+            source: mv.source,
+            destination: mv.destination,
+            captured: captured_piece,
+            previous_en_passant_square: prev_en_passant,
+            promotion: mv.promotion,
+            en_passant_capture: captured_en_passant,
+            removed_castling_rights: self.castling ^ prev_castling,
+            previous_full_moves: self.full_moves,
+            previous_half_moves: self.half_moves,
+        });
     }
 
     pub fn unmake_move(&mut self) {
-        if let Some(previous) = &self.previous_position {
-            *self = *previous.clone();
+        let mv = self
+            .history
+            .pop()
+            .expect("should never reverse a move when no moves in history");
+
+        // Pieces
+        let (colour, piece) = mv.moved;
+        let captured_piece = mv.captured;
+        let en_passant = mv.en_passant_capture;
+
+        if piece == PAWN {
+            // Add back in opposing pawn due to en passant
+            if en_passant {
+                if colour == WHITE {
+                    self.pieces[BLACK as usize][PAWN as usize] ^= 1 << (mv.destination.0 - 8);
+                    self.squares[mv.destination.0 as usize - 8] = Some((BLACK, PAWN));
+                } else {
+                    self.pieces[WHITE as usize][PAWN as usize] ^= 1 << (mv.destination.0 + 8);
+                    self.squares[mv.destination.0 as usize + 8] = Some((WHITE, PAWN));
+                }
+            }
+        } else if piece == KING {
+            // Reverse castling for rook
+            if mv.source.0.abs_diff(mv.destination.0) == 2 {
+                match mv.destination.0 {
+                    G1 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << F1 | 1 << H1;
+                        self.squares[F1 as usize] = None;
+                        self.squares[H1 as usize] = Some((colour, ROOK));
+                    }
+                    C1 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << D1 | 1 << A1;
+                        self.squares[D1 as usize] = None;
+                        self.squares[A1 as usize] = Some((colour, ROOK));
+                    }
+                    G8 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << F8 | 1 << H8;
+                        self.squares[F8 as usize] = None;
+                        self.squares[H8 as usize] = Some((colour, ROOK));
+                    }
+                    C8 => {
+                        self.pieces[colour as usize][ROOK as usize] ^= 1 << D8 | 1 << A8;
+                        self.squares[D8 as usize] = None;
+                        self.squares[A8 as usize] = Some((colour, ROOK));
+                    }
+                    s => panic!("can't castle to square: {}", Square(s)),
+                }
+            }
         }
+
+        // Re-institute any lost castling rights
+        self.castling |= mv.removed_castling_rights;
+
+        if let Some(promotion) = mv.promotion {
+            // Promote
+            self.pieces[colour as usize][piece as usize] ^= 1 << mv.source.0;
+            self.pieces[colour as usize][promotion as usize] ^= 1 << mv.destination.0;
+            self.squares[mv.destination.0 as usize] = None;
+            self.squares[mv.source.0 as usize] = Some((colour, PAWN));
+        } else {
+            // Normal move
+            self.pieces[colour as usize][piece as usize] ^=
+                1 << mv.destination.0 | 1 << mv.source.0;
+            self.squares[mv.destination.0 as usize] = None;
+            self.squares[mv.source.0 as usize] = Some((colour, piece));
+        }
+
+        // Capture
+        if let Some(captured) = captured_piece {
+            self.pieces[captured.0 as usize][captured.1 as usize] ^= 1 << mv.destination.0;
+            self.squares[mv.destination.0 as usize] = Some((captured.0, captured.1));
+        } else {
+            self.squares[mv.destination.0 as usize] = None;
+        }
+
+        // Reset en passant square
+        self.en_passant = mv.previous_en_passant_square;
+
+        // Switch colour
+        if self.active_colour == WHITE {
+            self.full_moves -= 1;
+        }
+        self.active_colour = colour;
+
+        // Reset counter for 50-move rule
+        self.half_moves = mv.previous_half_moves;
     }
 
     pub fn attacked(&self, attacking_colour: u8) -> u64 {

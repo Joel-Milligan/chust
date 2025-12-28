@@ -1,4 +1,4 @@
-/// Utility functions for working with bitboards
+//! Utility functions for working with bitboards
 
 /// Returns a vector of all the indicies with an ON bit
 pub fn bit_indicies(mut bitboard: u64) -> Vec<usize> {

@@ -64,7 +64,7 @@ impl Uci {
         Ok(())
     }
 
-    pub fn write_info(
+    pub fn print_info(
         depth: usize,
         nodes: usize,
         score: i32,
@@ -84,8 +84,8 @@ impl Uci {
             write!(buffer, "cp {score} pv ").unwrap();
         }
 
-        for i in 0..pv_length {
-            write!(buffer, "{} ", pv_table[i].unwrap()).unwrap();
+        for pv_move in pv_table.iter().take(pv_length).flatten() {
+            write!(buffer, "{} ", pv_move).unwrap();
         }
 
         println!("{buffer}");

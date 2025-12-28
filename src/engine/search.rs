@@ -38,7 +38,7 @@ impl Engine {
 
         for current_depth in 1..=depth {
             let eval = self.alpha_beta(current_depth, -20_000, 20_000);
-            Uci::write_info(
+            Uci::print_info(
                 current_depth,
                 self.nodes,
                 eval,
@@ -78,7 +78,7 @@ impl Engine {
         }
 
         let mut sorted_moves = self.board.moves();
-        sorted_moves.sort_by(|a, b| self.score_move(b).cmp(&self.score_move(a)));
+        sorted_moves.sort_by_key(|mv| std::cmp::Reverse(self.score_move(mv)));
         for mv in sorted_moves {
             self.board.make_move(&mv);
             self.ply += 1;

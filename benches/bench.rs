@@ -9,14 +9,12 @@ pub fn perft_bench(c: &mut Criterion) {
 
 pub fn search_bench(c: &mut Criterion) {
     let board = Board::from_fen("4r3/1pp2rbk/6pn/4n3/P3BN1q/1PB2bPP/8/2Q1RRK1 b - - 0 31").unwrap();
-    let mut engine = Engine::new();
-    engine.board = board;
 
     c.bench_function("search: mate in 2", |b| {
         b.iter(|| {
+            let mut engine = Engine::new();
+            engine.board = board.clone();
             engine.search_depth(std::hint::black_box(3));
-            // Clear table to prevent information being kept between runs
-            engine.tt.clear();
         })
     });
 }

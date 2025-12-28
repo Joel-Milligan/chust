@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::hash::Hash;
 use std::str::FromStr;
 
 use bitvec::prelude::*;
@@ -29,6 +28,7 @@ pub struct Board {
     pub half_moves: u8,
     full_moves: u8,
     history: Vec<HistoryMove>,
+    pub hash: u64,
 }
 
 impl Default for Board {
@@ -65,15 +65,6 @@ impl Display for Board {
             writeln!(f)?;
         }
         write!(f, "  a b c d e f g h")
-    }
-}
-
-impl Hash for Board {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.pieces.hash(state);
-        self.active_colour.hash(state);
-        self.castling.hash(state);
-        self.en_passant.hash(state);
     }
 }
 
@@ -152,6 +143,7 @@ impl Board {
             half_moves,
             full_moves,
             history: Vec::new(),
+            hash: instantiate_board_hash(active_colour, squares, castling, en_passant),
         })
     }
 
@@ -265,9 +257,13 @@ impl Board {
                 if colour == WHITE {
                     self.pieces[BLACK as usize][PAWN as usize] ^= 1 << (mv.destination.0 - 8);
                     self.squares[mv.destination.0 as usize - 8] = None;
+                    self.hash ^= ZOBRIST_SQUARES[mv.destination.0 as usize - 8][BLACK as usize]
+                        [PAWN as usize];
                 } else {
                     self.pieces[WHITE as usize][PAWN as usize] ^= 1 << (mv.destination.0 + 8);
                     self.squares[mv.destination.0 as usize + 8] = None;
+                    self.hash ^= ZOBRIST_SQUARES[mv.destination.0 as usize + 8][WHITE as usize]
+                        [PAWN as usize];
                 }
                 captured_en_passant = true;
             }
@@ -283,12 +279,16 @@ impl Board {
             // Moving rook prevents castling
             if self.castling & WHITE_KING_SIDE != 0 && mv.source.0 == H1 {
                 self.castling ^= WHITE_KING_SIDE;
+                self.hash ^= *ZOBRIST_WHITE_KING_CASTLING;
             } else if self.castling & WHITE_QUEEN_SIDE != 0 && mv.source.0 == A1 {
                 self.castling ^= WHITE_QUEEN_SIDE;
+                self.hash ^= *ZOBRIST_WHITE_QUEEN_CASTLING;
             } else if self.castling & BLACK_KING_SIDE != 0 && mv.source.0 == H8 {
                 self.castling ^= BLACK_KING_SIDE;
+                self.hash ^= *ZOBRIST_BLACK_KING_CASTLING;
             } else if self.castling & BLACK_QUEEN_SIDE != 0 && mv.source.0 == A8 {
                 self.castling ^= BLACK_QUEEN_SIDE;
+                self.hash ^= *ZOBRIST_BLACK_QUEEN_CASTLING;
             }
         } else if piece == KING {
             // Castling
@@ -297,22 +297,30 @@ impl Board {
                     G1 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << F1 | 1 << H1;
                         self.squares[H1 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[H1 as usize][colour as usize][ROOK as usize];
                         self.squares[F1 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[F1 as usize][colour as usize][ROOK as usize];
                     }
                     C1 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << D1 | 1 << A1;
                         self.squares[A1 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[A1 as usize][colour as usize][ROOK as usize];
                         self.squares[D1 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[D1 as usize][colour as usize][ROOK as usize];
                     }
                     G8 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << F8 | 1 << H8;
                         self.squares[H8 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[H8 as usize][colour as usize][ROOK as usize];
                         self.squares[F8 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[F8 as usize][colour as usize][ROOK as usize];
                     }
                     C8 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << D8 | 1 << A8;
                         self.squares[A8 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[A8 as usize][colour as usize][ROOK as usize];
                         self.squares[D8 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[D8 as usize][colour as usize][ROOK as usize];
                     }
                     s => panic!("can't castle to square: {}", Square(s)),
                 }
@@ -320,8 +328,20 @@ impl Board {
 
             // Moving king prevents castling
             if colour == WHITE {
+                if self.castling & WHITE_KING_SIDE != 0 {
+                    self.hash ^= *ZOBRIST_WHITE_KING_CASTLING;
+                }
+                if self.castling & WHITE_QUEEN_SIDE != 0 {
+                    self.hash ^= *ZOBRIST_WHITE_QUEEN_CASTLING;
+                }
                 self.castling &= !(WHITE_KING_SIDE | WHITE_QUEEN_SIDE);
             } else {
+                if self.castling & BLACK_KING_SIDE != 0 {
+                    self.hash ^= *ZOBRIST_BLACK_KING_CASTLING;
+                }
+                if self.castling & BLACK_QUEEN_SIDE != 0 {
+                    self.hash ^= *ZOBRIST_BLACK_QUEEN_CASTLING;
+                }
                 self.castling &= !(BLACK_KING_SIDE | BLACK_QUEEN_SIDE);
             }
         }
@@ -329,33 +349,51 @@ impl Board {
         // Captured rook prevents castling
         if self.castling & WHITE_KING_SIDE != 0 && mv.destination.0 == H1 {
             self.castling ^= WHITE_KING_SIDE;
+            self.hash ^= *ZOBRIST_WHITE_KING_CASTLING;
         } else if self.castling & WHITE_QUEEN_SIDE != 0 && mv.destination.0 == A1 {
             self.castling ^= WHITE_QUEEN_SIDE;
+            self.hash ^= *ZOBRIST_WHITE_QUEEN_CASTLING;
         } else if self.castling & BLACK_KING_SIDE != 0 && mv.destination.0 == H8 {
             self.castling ^= BLACK_KING_SIDE;
+            self.hash ^= *ZOBRIST_BLACK_KING_CASTLING;
         } else if self.castling & BLACK_QUEEN_SIDE != 0 && mv.destination.0 == A8 {
             self.castling ^= BLACK_QUEEN_SIDE;
+            self.hash ^= *ZOBRIST_BLACK_QUEEN_CASTLING;
         }
 
+        if let Some(existing_en_passant) = self.en_passant {
+            self.hash ^= ZOBRIST_EN_PASSANT[existing_en_passant as usize % 8];
+        }
         self.en_passant = en_passant;
+        if let Some(new_en_passant) = self.en_passant {
+            self.hash ^= ZOBRIST_EN_PASSANT[new_en_passant as usize % 8];
+        }
 
         if let Some(promotion) = mv.promotion {
             // Promote
             self.pieces[colour as usize][piece as usize] ^= 1 << mv.source.0;
             self.pieces[colour as usize][promotion as usize] ^= 1 << mv.destination.0;
             self.squares[mv.source.0 as usize] = None;
+            self.hash ^= ZOBRIST_SQUARES[mv.source.0 as usize][colour as usize][piece as usize];
             self.squares[mv.destination.0 as usize] = Some((colour, promotion));
+            self.hash ^=
+                ZOBRIST_SQUARES[mv.destination.0 as usize][colour as usize][promotion as usize];
         } else {
             // Normal move
             self.pieces[colour as usize][piece as usize] ^=
                 1 << mv.destination.0 | 1 << mv.source.0;
             self.squares[mv.source.0 as usize] = None;
+            self.hash ^= ZOBRIST_SQUARES[mv.source.0 as usize][colour as usize][piece as usize];
             self.squares[mv.destination.0 as usize] = Some((colour, piece));
+            self.hash ^=
+                ZOBRIST_SQUARES[mv.destination.0 as usize][colour as usize][piece as usize];
         }
 
         // Capture
         if let Some(captured) = captured_piece {
             self.pieces[captured.0 as usize][captured.1 as usize] ^= 1 << mv.destination.0;
+            self.hash ^= ZOBRIST_SQUARES[mv.destination.0 as usize][captured.0 as usize]
+                [captured.1 as usize];
         };
 
         // Switch colour
@@ -363,6 +401,7 @@ impl Board {
             self.full_moves += 1;
         }
         self.active_colour = 1 - colour;
+        self.hash ^= *ZOBRIST_BLACK;
 
         // Increment counter for 50-move rule
         if captured_piece.is_some() || piece == PAWN {
@@ -402,9 +441,13 @@ impl Board {
                 if colour == WHITE {
                     self.pieces[BLACK as usize][PAWN as usize] ^= 1 << (mv.destination.0 - 8);
                     self.squares[mv.destination.0 as usize - 8] = Some((BLACK, PAWN));
+                    self.hash ^= ZOBRIST_SQUARES[mv.destination.0 as usize - 8][BLACK as usize]
+                        [PAWN as usize];
                 } else {
                     self.pieces[WHITE as usize][PAWN as usize] ^= 1 << (mv.destination.0 + 8);
                     self.squares[mv.destination.0 as usize + 8] = Some((WHITE, PAWN));
+                    self.hash ^= ZOBRIST_SQUARES[mv.destination.0 as usize + 8][WHITE as usize]
+                        [PAWN as usize];
                 }
             }
         } else if piece == KING {
@@ -414,22 +457,30 @@ impl Board {
                     G1 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << F1 | 1 << H1;
                         self.squares[F1 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[H1 as usize][colour as usize][ROOK as usize];
                         self.squares[H1 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[F1 as usize][colour as usize][ROOK as usize];
                     }
                     C1 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << D1 | 1 << A1;
                         self.squares[D1 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[A1 as usize][colour as usize][ROOK as usize];
                         self.squares[A1 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[D1 as usize][colour as usize][ROOK as usize];
                     }
                     G8 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << F8 | 1 << H8;
                         self.squares[F8 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[H8 as usize][colour as usize][ROOK as usize];
                         self.squares[H8 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[F8 as usize][colour as usize][ROOK as usize];
                     }
                     C8 => {
                         self.pieces[colour as usize][ROOK as usize] ^= 1 << D8 | 1 << A8;
                         self.squares[D8 as usize] = None;
+                        self.hash ^= ZOBRIST_SQUARES[A8 as usize][colour as usize][ROOK as usize];
                         self.squares[A8 as usize] = Some((colour, ROOK));
+                        self.hash ^= ZOBRIST_SQUARES[D8 as usize][colour as usize][ROOK as usize];
                     }
                     s => panic!("can't castle to square: {}", Square(s)),
                 }
@@ -438,36 +489,63 @@ impl Board {
 
         // Re-institute any lost castling rights
         self.castling |= mv.removed_castling_rights;
+        if mv.removed_castling_rights & WHITE_KING_SIDE != 0 {
+            self.hash ^= *ZOBRIST_WHITE_KING_CASTLING;
+        }
+        if mv.removed_castling_rights & WHITE_QUEEN_SIDE != 0 {
+            self.hash ^= *ZOBRIST_WHITE_QUEEN_CASTLING;
+        }
+        if mv.removed_castling_rights & BLACK_KING_SIDE != 0 {
+            self.hash ^= *ZOBRIST_BLACK_KING_CASTLING;
+        }
+        if mv.removed_castling_rights & BLACK_QUEEN_SIDE != 0 {
+            self.hash ^= *ZOBRIST_BLACK_QUEEN_CASTLING;
+        }
 
         if let Some(promotion) = mv.promotion {
             // Promote
             self.pieces[colour as usize][piece as usize] ^= 1 << mv.source.0;
             self.pieces[colour as usize][promotion as usize] ^= 1 << mv.destination.0;
             self.squares[mv.destination.0 as usize] = None;
+            self.hash ^= ZOBRIST_SQUARES[mv.source.0 as usize][colour as usize][piece as usize];
             self.squares[mv.source.0 as usize] = Some((colour, PAWN));
+            self.hash ^=
+                ZOBRIST_SQUARES[mv.destination.0 as usize][colour as usize][promotion as usize];
         } else {
             // Normal move
             self.pieces[colour as usize][piece as usize] ^=
                 1 << mv.destination.0 | 1 << mv.source.0;
             self.squares[mv.destination.0 as usize] = None;
+            self.hash ^=
+                ZOBRIST_SQUARES[mv.destination.0 as usize][colour as usize][piece as usize];
             self.squares[mv.source.0 as usize] = Some((colour, piece));
+            self.hash ^= ZOBRIST_SQUARES[mv.source.0 as usize][colour as usize][piece as usize];
         }
 
         // Capture
         if let Some(captured) = captured_piece {
             self.pieces[captured.0 as usize][captured.1 as usize] ^= 1 << mv.destination.0;
             self.squares[mv.destination.0 as usize] = Some((captured.0, captured.1));
+            self.hash ^= ZOBRIST_SQUARES[mv.destination.0 as usize][captured.0 as usize]
+                [captured.1 as usize];
         } else {
             self.squares[mv.destination.0 as usize] = None;
         }
 
         // Reset en passant square
+        if let Some(existing_en_passant) = self.en_passant {
+            self.hash ^= ZOBRIST_EN_PASSANT[existing_en_passant as usize % 8];
+        }
         self.en_passant = mv.previous_en_passant_square;
+        if let Some(new_en_passant) = self.en_passant {
+            self.hash ^= ZOBRIST_EN_PASSANT[new_en_passant as usize % 8];
+        }
 
         // Switch colour
         if self.active_colour == WHITE {
             self.full_moves -= 1;
         }
+        self.hash ^= *ZOBRIST_BLACK;
         self.active_colour = colour;
 
         // Reset counter for 50-move rule
@@ -479,15 +557,15 @@ impl Board {
             .map(|square| (square, self.squares[square as usize]))
             .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == attacking_colour))
             .map(|(square, piece)| match piece.unwrap().1 {
-                BISHOP => generate_bishop_moves(square, self.blockers()),
-                KING => KING_MOVES[square as usize],
-                KNIGHT => generate_knight_moves(square),
                 PAWN => PAWN_ATTACKS[attacking_colour as usize][square as usize],
+                KNIGHT => generate_knight_moves(square),
+                BISHOP => generate_bishop_moves(square, self.blockers()),
+                ROOK => generate_rook_moves(square, self.blockers()),
                 QUEEN => {
                     generate_bishop_moves(square, self.blockers())
                         | generate_rook_moves(square, self.blockers())
                 }
-                ROOK => generate_rook_moves(square, self.blockers()),
+                KING => KING_MOVES[square as usize],
                 _ => panic!("unknown piece"),
             })
             .reduce(|acc, e| acc | e)
@@ -541,23 +619,44 @@ impl Board {
 
         println!("\n{nodes}");
     }
+}
 
-    pub fn zobrist(&self) -> u64 {
-        let mut hash = 0u64;
-        if self.active_colour == BLACK {
-            hash ^= *ZOBRIST_BLACK;
-        }
+fn instantiate_board_hash(
+    active_colour: u8,
+    squares: [Option<(u8, u8)>; 64],
+    castling: u8,
+    en_passant: Option<u8>,
+) -> u64 {
+    let mut hash = 0u64;
 
-        for square in A1..=H8 {
-            if let Some((colour, piece)) = self.squares[square as usize] {
-                hash ^= ZOBRIST[square as usize][colour as usize][piece as usize];
-            }
-        }
-
-        // TODO: Need to also hash en-passant and castling rights
-
-        hash
+    if active_colour == BLACK {
+        hash ^= *ZOBRIST_BLACK;
     }
+
+    for square in A1..=H8 {
+        if let Some((colour, piece)) = squares[square as usize] {
+            hash ^= ZOBRIST_SQUARES[square as usize][colour as usize][piece as usize];
+        }
+    }
+
+    if castling & WHITE_KING_SIDE != 0 {
+        hash ^= *ZOBRIST_WHITE_KING_CASTLING;
+    }
+    if castling & WHITE_QUEEN_SIDE != 0 {
+        hash ^= *ZOBRIST_WHITE_QUEEN_CASTLING;
+    }
+    if castling & BLACK_KING_SIDE != 0 {
+        hash ^= *ZOBRIST_BLACK_KING_CASTLING;
+    }
+    if castling & BLACK_QUEEN_SIDE != 0 {
+        hash ^= *ZOBRIST_BLACK_QUEEN_CASTLING;
+    }
+
+    if let Some(en_passant) = en_passant {
+        hash ^= ZOBRIST_EN_PASSANT[(en_passant % 8) as usize]
+    }
+
+    hash
 }
 
 #[cfg(test)]

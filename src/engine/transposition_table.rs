@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::board::Board;
 
@@ -25,12 +24,8 @@ impl TranspositionTable {
     }
 
     pub fn get(&self, board: &Board, depth: usize, alpha: i32, beta: i32) -> Option<i32> {
-        let mut hasher = DefaultHasher::new();
-        board.hash(&mut hasher);
-        let hash = hasher.finish();
-        if let Some(node) = self.0.get(&hash) {
+        if let Some(node) = self.0.get(&board.hash) {
             if node.depth >= depth {
-                // println!("Hit");
                 return match node.score {
                     Score::Exact(score) => Some(score),
                     Score::Alpha(score) if score <= alpha => Some(alpha),
@@ -43,10 +38,7 @@ impl TranspositionTable {
     }
 
     pub fn insert(&mut self, board: &Board, depth: usize, score: Score) {
-        let mut hasher = DefaultHasher::new();
-        board.hash(&mut hasher);
-        let hash = hasher.finish();
-        self.0.insert(hash, Node { depth, score });
+        self.0.insert(board.hash, Node { depth, score });
     }
 
     pub fn clear(&mut self) {

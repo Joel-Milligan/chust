@@ -84,3 +84,20 @@ pub struct HistoryMove {
     pub previous_full_moves: u8,
     pub previous_half_moves: u8,
 }
+
+impl Display for HistoryMove {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(promotion) = self.promotion {
+            let piece = match promotion {
+                KNIGHT => 'n',
+                BISHOP => 'b',
+                ROOK => 'r',
+                QUEEN => 'q',
+                _ => panic!("unknown promotion piece"),
+            };
+            write!(f, "{}{}{}", self.source, self.destination, piece)
+        } else {
+            write!(f, "{}{}", self.source, self.destination)
+        }
+    }
+}

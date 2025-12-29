@@ -26,7 +26,7 @@ pub const KNIGHT_VALUE: i32 = 300;
 pub const PAWN_VALUE: i32 = 100;
 pub const MATE_VALUE: i32 = 10_000;
 
-/// Most valuable victim - least valuable attacker: [Victim][Attacker]
+/// Most valuable victim - least valuable attacker: [attacker][victim]
 pub const MVV_LVA: [[i32; 6]; 6] = [
     [105, 205, 305, 405, 505, 605],
     [104, 204, 304, 404, 504, 604],

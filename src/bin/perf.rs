@@ -19,6 +19,6 @@ const MATE_IN_5: &str = "4rb1k/2pqn2p/6pn/ppp3N1/P1QP2b1/1P2p3/2B3PP/B3RRK1 w - 
 
 fn main() {
     let mut engine = Engine::new();
-    engine.board = Board::from_fen(MATE_IN_3).unwrap();
-    engine.search_depth(5);
+    engine.board = Board::from_fen(MATE_IN_4).unwrap();
+    engine.search_depth(7);
 }

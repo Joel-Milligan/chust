@@ -140,11 +140,11 @@ impl Engine {
         }
 
         // FIXME: Does not identify en passant captures
-        let captures = moves
+        let mut captures = moves
             .into_iter()
             .filter(|x| self.board.squares[x.destination.0 as usize].is_some())
             .collect::<Vec<_>>();
-
+        captures.sort_by_key(|mv| std::cmp::Reverse(self.score_move(mv)));
         for mv in captures {
             self.board.make_move(&mv);
             self.ply += 1;

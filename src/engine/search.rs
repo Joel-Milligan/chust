@@ -5,6 +5,29 @@ use crate::piece_move::Move;
 use crate::uci::Uci;
 
 impl Engine {
+    pub fn search_depth(&mut self, depth: usize) {
+        self.nodes = 0;
+        self.killer_moves = ([None; MAX_PLY], [None; MAX_PLY]);
+        self.history_moves = [[0; 64]; 12];
+        self.pv_length = [0; MAX_PLY];
+        self.pv_table = [[None; MAX_PLY]; MAX_PLY];
+
+        for current_depth in 1..=depth {
+            let eval = self.alpha_beta(current_depth, -20_000, 20_000);
+            Uci::print_info(
+                current_depth,
+                self.nodes,
+                eval,
+                self.pv_length[0],
+                &self.pv_table[0],
+            );
+        }
+
+        if let Some(best_move) = self.pv_table[0][0] {
+            println!("bestmove {}", best_move);
+        }
+    }
+
     fn score_move(&mut self, mv: &Move) -> i32 {
         if self.pv_table[0][self.ply] == Some(*mv) {
             return 20_000;
@@ -29,29 +52,6 @@ impl Engine {
         }
     }
 
-    pub fn search_depth(&mut self, depth: usize) {
-        self.nodes = 0;
-        self.killer_moves = ([None; MAX_PLY], [None; MAX_PLY]);
-        self.history_moves = [[0; 64]; 12];
-        self.pv_length = [0; MAX_PLY];
-        self.pv_table = [[None; MAX_PLY]; MAX_PLY];
-
-        for current_depth in 1..=depth {
-            let eval = self.alpha_beta(current_depth, -20_000, 20_000);
-            Uci::print_info(
-                current_depth,
-                self.nodes,
-                eval,
-                self.pv_length[0],
-                &self.pv_table[0],
-            );
-        }
-
-        if let Some(best_move) = self.pv_table[0][0] {
-            println!("bestmove {}", best_move);
-        }
-    }
-
     fn alpha_beta(&mut self, depth: usize, mut alpha: i32, beta: i32) -> i32 {
         if let Some(score) = self.tt.get(&self.board, depth, alpha, beta) {
             return score;
@@ -66,6 +66,7 @@ impl Engine {
         }
 
         let mut score = Score::Alpha(alpha);
+        let mut found_pv = false;
 
         self.nodes += 1;
 
@@ -82,9 +83,32 @@ impl Engine {
         for mv in sorted_moves {
             self.board.make_move(&mv);
             self.ply += 1;
-            let eval = -self.alpha_beta(depth - 1, -beta, -alpha);
+
+            let eval = if found_pv {
+                let eval = -self.alpha_beta(depth - 1, -alpha - 1, -alpha);
+                if (eval > alpha) && (eval < beta) {
+                    // Failed to prove move is worse than current, re-search normally
+                    -self.alpha_beta(depth - 1, -beta, -alpha)
+                } else {
+                    eval
+                }
+            } else {
+                -self.alpha_beta(depth - 1, -beta, -alpha)
+            };
+
             self.board.unmake_move();
             self.ply -= 1;
+
+            if eval >= beta {
+                self.tt.insert(&self.board, depth, Score::Beta(beta));
+
+                if self.board.squares[mv.destination.0 as usize].is_none() {
+                    self.killer_moves.1[self.ply] = self.killer_moves.0[self.ply];
+                    self.killer_moves.0[self.ply] = Some(mv);
+                }
+
+                return beta;
+            }
 
             if eval > alpha {
                 if self.board.squares[mv.destination.0 as usize].is_none() {
@@ -95,23 +119,13 @@ impl Engine {
 
                 alpha = eval;
                 score = Score::Exact(alpha);
+                found_pv = true;
 
                 self.pv_table[self.ply][self.ply] = Some(mv);
                 for next_ply in (self.ply + 1)..self.pv_length[self.ply + 1] {
                     self.pv_table[self.ply][next_ply] = self.pv_table[self.ply + 1][next_ply];
                 }
                 self.pv_length[self.ply] = self.pv_length[self.ply + 1];
-
-                if eval >= beta {
-                    self.tt.insert(&self.board, depth, Score::Beta(beta));
-
-                    if self.board.squares[mv.destination.0 as usize].is_none() {
-                        self.killer_moves.1[self.ply] = self.killer_moves.0[self.ply];
-                        self.killer_moves.0[self.ply] = Some(mv);
-                    }
-
-                    return beta;
-                }
             }
         }
 

@@ -147,33 +147,40 @@ impl Board {
         })
     }
 
-    pub fn moves(&self) -> Vec<Move> {
-        self.pseudo_legal_moves()
-            .into_iter()
-            .filter(|candidate| {
-                let mut board = self.clone();
-                board.make_move(candidate);
-                board.attacked(board.active_colour)
-                    & board.pieces[self.active_colour as usize][KING as usize]
-                    == 0
-            })
-            .collect()
+    pub fn moves(&mut self) -> Vec<Move> {
+        let mut moves = vec![];
+        for square in A1..=H8 {
+            if let Some((colour, piece)) = self.squares[square as usize]
+                && colour == self.active_colour
+            {
+                self.get_moves_for_square(square, colour, piece, &mut moves);
+            }
+        }
+        moves
     }
 
-    fn pseudo_legal_moves(&self) -> Vec<Move> {
-        (A1..=H8)
-            .map(|square| (square, self.squares[square as usize]))
-            .filter(|(_, piece)| piece.is_some_and(|(colour, _)| colour == self.active_colour))
-            .flat_map(|(square, _)| self.pseudo_legal_moves_square(square))
-            .collect()
+    fn get_moves_for_square(&mut self, square: u8, colour: u8, piece: u8, moves: &mut Vec<Move>) {
+        for candidate_move in self.generate_pseudo_moves(square, colour, piece) {
+            self.make_move(&candidate_move);
+
+            // Only add move if it doesn't result in our king being attacked
+            if self.attacked(self.active_colour)
+                & self.pieces[1 - self.active_colour as usize][KING as usize]
+                == 0
+            {
+                moves.push(candidate_move);
+            }
+
+            self.unmake_move();
+        }
     }
 
-    fn pseudo_legal_moves_square(&self, square: u8) -> Vec<Move> {
-        let (colour, piece) = match self.squares[square as usize] {
-            Some(p) => p,
-            None => return vec![],
-        };
-
+    fn generate_pseudo_moves(
+        &mut self,
+        square: u8,
+        colour: u8,
+        piece: u8,
+    ) -> impl Iterator<Item = Move> + use<> {
         let friendly_pieces = self.pieces[colour as usize]
             .into_iter()
             .reduce(|acc, e| acc | e)
@@ -189,7 +196,7 @@ impl Board {
         let pawn_attacks = PAWN_ATTACKS[colour as usize][square as usize]
             & (opponent_pieces | self.en_passant.map_or(0, |s| 1 << s));
 
-        let moves = match piece {
+        let pseudo_moves = match piece {
             BISHOP => generate_bishop_moves(square, blockers),
             KING => generate_king_moves(
                 square,
@@ -206,38 +213,30 @@ impl Board {
                 generate_bishop_moves(square, blockers) | generate_rook_moves(square, blockers)
             }
             ROOK => generate_rook_moves(square, blockers),
-            _ => panic!("Unknown piece"),
-        };
+            _ => panic!("unknown piece"),
+        } & !friendly_pieces;
 
-        let moves = moves & !friendly_pieces;
-        let moves = moves.view_bits::<Lsb0>();
-
-        // Generate promotions
-        if piece == PAWN
-            && ((colour == WHITE && (A7..H7).contains(&square))
-                || (colour == BLACK && (A2..H2).contains(&square)))
-        {
-            return moves
-                .into_iter()
-                .zip(0u8..)
-                .filter(|(m, _)| **m)
-                .flat_map(|(_, destination)| {
-                    vec![
-                        Move::promotion(square, destination, BISHOP),
-                        Move::promotion(square, destination, KNIGHT),
-                        Move::promotion(square, destination, QUEEN),
-                        Move::promotion(square, destination, ROOK),
-                    ]
-                })
-                .collect();
-        }
-
-        moves
+        pseudo_moves
+            .view_bits::<Lsb0>()
+            .to_owned()
             .into_iter()
-            .zip(0u8..)
-            .filter(|(m, _)| **m)
-            .map(|(_, destination)| Move::new(square, destination))
-            .collect()
+            .enumerate()
+            .filter(|(_, m)| *m)
+            .flat_map(move |(destination, _)| {
+                if piece == PAWN
+                    && ((colour == WHITE && (A7..H7).contains(&square))
+                        || (colour == BLACK && (A2..H2).contains(&square)))
+                {
+                    vec![
+                        Move::promotion(square, destination as u8, BISHOP),
+                        Move::promotion(square, destination as u8, KNIGHT),
+                        Move::promotion(square, destination as u8, QUEEN),
+                        Move::promotion(square, destination as u8, ROOK),
+                    ]
+                } else {
+                    vec![Move::new(square, destination as u8)]
+                }
+            })
     }
 
     pub fn make_move(&mut self, mv: &Move) {
@@ -573,7 +572,7 @@ impl Board {
     }
 
     pub fn in_check(&self) -> bool {
-        let attacked = self.attacked(!self.active_colour & 1);
+        let attacked = self.attacked(1 - self.active_colour);
         self.pieces[self.active_colour as usize][KING as usize] & attacked != 0
     }
 

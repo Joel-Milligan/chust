@@ -1,7 +1,7 @@
 #![allow(unused)]
 use std::sync::LazyLock;
 
-use crate::constants::*;
+use crate::repr::constants::*;
 
 pub fn generate_bishop_moves(square: u8, blockers: u64) -> u64 {
     let mut moves = 0;
@@ -138,9 +138,16 @@ pub static BISHOP_OCCUPANCY: LazyLock<[u64; 64]> = LazyLock::new(|| {
     occupancy
 });
 
+#[rustfmt::skip]
 pub static BISHOP_COUNT: [u64; 64] = [
-    6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 9, 9, 7, 5, 5,
-    5, 5, 7, 9, 9, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6,
+    6, 5, 5, 5, 5, 5, 5, 6,
+    5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 7, 7, 7, 7, 5, 5,
+    5, 5, 7, 9, 9, 7, 5, 5,
+    5, 5, 7, 9, 9, 7, 5, 5,
+    5, 5, 7, 7, 7, 7, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5,
+    6, 5, 5, 5, 5, 5, 5, 6,
 ];
 
 #[cfg(test)]

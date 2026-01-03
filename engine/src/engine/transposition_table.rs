@@ -1,4 +1,4 @@
-use crate::board::Board;
+use crate::repr::board::Board;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Score {

@@ -1,6 +1,6 @@
 #![feature(int_roundings)]
-use chust::board::Board;
-use chust::engine::Engine;
+use chust::Board;
+use chust::Engine;
 
 #[allow(dead_code)]
 const MATE_IN_2: &str = "4r3/1pp2rbk/6pn/4n3/P3BN1q/1PB2bPP/8/2Q1RRK1 b - - 0 31";

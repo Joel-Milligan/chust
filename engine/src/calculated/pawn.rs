@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
-use crate::bitboards::filter;
-use crate::constants::*;
+use crate::repr::bitboards::*;
+use crate::repr::constants::*;
 
 pub fn generate_pawn_moves(square: u8, blockers: u64, colour: u8) -> u64 {
     let mut moves = PAWN_MOVES[colour as usize][square as usize];

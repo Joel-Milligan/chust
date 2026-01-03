@@ -1,7 +1,7 @@
-use crate::constants::*;
+use crate::calculated::values::*;
 use crate::engine::transposition_table::Score;
 use crate::engine::{Engine, MAX_PLY};
-use crate::piece_move::Move;
+use crate::repr::piece_move::Move;
 use crate::uci::Uci;
 
 impl Engine {

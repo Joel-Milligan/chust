@@ -1,5 +1,5 @@
-use chust::board::Board;
-use chust::engine::Engine;
+use chust::Board;
+use chust::Engine;
 use criterion::{Criterion, criterion_group, criterion_main};
 
 pub fn perft_bench(c: &mut Criterion) {

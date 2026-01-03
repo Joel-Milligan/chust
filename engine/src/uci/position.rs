@@ -1,6 +1,6 @@
-use crate::board::Board;
 use crate::engine::Engine;
-use crate::piece_move::Move;
+use crate::repr::board::Board;
+use crate::repr::piece_move::Move;
 
 pub fn invoke(engine: &mut Engine, tokens: &[&str]) {
     if !tokens.is_empty() && tokens[0] == "startpos" {

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::constants::{BISHOP, KNIGHT, QUEEN, ROOK};
-use crate::square::Square;
+use super::square::Square;
+use crate::repr::constants::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Move {

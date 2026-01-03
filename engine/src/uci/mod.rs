@@ -1,10 +1,10 @@
 use std::fmt::Write;
 use std::io;
 
-use crate::board::Board;
-use crate::constants::MATE_VALUE;
+use crate::calculated::values::MATE_VALUE;
 use crate::engine::{Engine, MAX_PLY};
-use crate::piece_move::Move;
+use crate::repr::board::Board;
+use crate::repr::piece_move::Move;
 
 mod go;
 mod position;

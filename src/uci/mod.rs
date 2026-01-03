@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::fmt::Write;
 use std::io;
 
@@ -30,10 +29,10 @@ impl Uci {
         }
     }
 
-    pub fn start(&mut self, mut args: VecDeque<String>) -> Result<(), std::io::Error> {
+    pub fn start(&mut self, args: Vec<String>) -> Result<(), std::io::Error> {
         if args.len() > 1 {
-            args.pop_front();
-            return self.command(args);
+            let args = args[1..].iter().map(AsRef::as_ref).collect::<Vec<_>>();
+            return self.command(args.as_slice());
         }
 
         let mut command = String::new();
@@ -41,22 +40,25 @@ impl Uci {
         loop {
             command.clear();
             io::stdin().read_line(&mut command)?;
-            let tokens = command.split_whitespace().map(str::to_string).collect();
-            self.command(tokens)?;
+            let tokens = command
+                .split_whitespace()
+                .map(AsRef::as_ref)
+                .collect::<Vec<_>>();
+            self.command(tokens.as_slice())?;
         }
     }
 
-    fn command(&mut self, mut tokens: VecDeque<String>) -> Result<(), std::io::Error> {
-        if let Some(operator) = tokens.pop_front() {
-            match operator.as_str() {
+    fn command(&mut self, tokens: &[&str]) -> Result<(), std::io::Error> {
+        if let Some((&operator, rest)) = tokens.split_first() {
+            match operator {
                 "uci" => println!("id name {NAME}\nid author {AUTHOR}\nuciok"),
                 "isready" => println!("readyok"),
                 "ucinewgame" => {
                     self.engine.board = Board::default();
                     println!("readyok")
                 }
-                "position" => position::invoke(&mut self.engine, tokens),
-                "go" => go::invoke(&mut self.engine, tokens),
+                "position" => position::invoke(&mut self.engine, rest),
+                "go" => go::invoke(&mut self.engine, rest),
                 "quit" => std::process::exit(0),
                 _ => {}
             }

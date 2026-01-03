@@ -1,4 +1,4 @@
-use crate::engine::Engine;
+use crate::Engine;
 
 pub fn invoke(engine: &mut Engine, tokens: &[&str]) {
     if let Some((depth, _)) = tokens.split_first()

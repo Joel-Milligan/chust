@@ -1,8 +1,8 @@
+use super::print::print_info;
 use super::transposition_table::Score;
 use super::{Engine, MAX_PLY};
 use crate::calculated::values::*;
 use crate::repr::Move;
-use crate::uci::Uci;
 
 impl Engine {
     pub fn search_depth(&mut self, depth: usize) {
@@ -14,7 +14,7 @@ impl Engine {
 
         for current_depth in 1..=depth {
             let eval = self.alpha_beta(current_depth, -20_000, 20_000);
-            Uci::print_info(
+            print_info(
                 current_depth,
                 self.nodes,
                 eval,

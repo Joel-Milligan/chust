@@ -1,0 +1,7 @@
+[package]
+name = "chust_uci"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chust_engine = { path = "../engine" }

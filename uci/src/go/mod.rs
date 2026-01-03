@@ -1,4 +1,4 @@
-use crate::engine::Engine;
+use crate::Engine;
 
 mod depth;
 mod perft;

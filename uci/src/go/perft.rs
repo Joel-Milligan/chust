@@ -1,6 +1,4 @@
-use crate::engine::Engine;
-use crate::repr::Board;
-use crate::repr::Move;
+use crate::{Board, Engine, Move};
 
 pub fn invoke(engine: &mut Engine, tokens: &[&str]) {
     if let Some((depth, rest)) = tokens.split_first() {

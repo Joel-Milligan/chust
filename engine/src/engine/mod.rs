@@ -3,6 +3,7 @@ use crate::repr::Move;
 use transposition_table::TranspositionTable;
 
 mod evaluate;
+mod print;
 mod search;
 mod transposition_table;
 

@@ -6,7 +6,7 @@ Chess in rust
 
 `cargo run -r`: Searches a specific position to a specific depth, defined in the `perf` binary
 
-`cargo run -r --bin uci`: Run in UCI mode
+`cargo run -r -p chust_uci`: Run in UCI mode
 
 `cargo bench`: Benches using uci perft at depth 3
 
@@ -17,15 +17,14 @@ Chess in rust
 ### En Crossiant
 
 1. Build in release mode
-2. Add new engine in En Crossiant - Local: `target/release/chust`
+2. Add new engine in En Crossiant - Local: `target/release/chust_uci`
 3. Configure engine to depth of 3-5 (anything more takes too long)
 
 ## Tasks
 
 ### Tech Debt
 
-- Improve seperation of concerns between UCI and engine
-    - Some has been completed, but still too tied together
+- Move handling printing to stdout from engine to uci
 - Error handling and validation
 
 ### Performance

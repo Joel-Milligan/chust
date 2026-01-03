@@ -1,6 +1,6 @@
 use std::env;
 
-use chust::Uci;
+use chust_uci::Uci;
 
 fn main() -> Result<(), std::io::Error> {
     let args = env::args().collect();

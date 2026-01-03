@@ -2,9 +2,8 @@
 
 pub use engine::Engine;
 pub use repr::Board;
-pub use uci::Uci;
+pub use repr::Move;
 
 mod calculated;
 mod engine;
 mod repr;
-mod uci;

@@ -4,15 +4,14 @@ use std::str::FromStr;
 use bitvec::prelude::*;
 use thiserror::Error;
 
+use super::constants::*;
 use super::piece_move::{HistoryMove, Move};
 use super::square::Square;
-use crate::calculated::bishop::generate_bishop_moves;
-use crate::repr::constants::*;
-use crate::calculated::king::{KING_MOVES, generate_king_moves};
-use crate::calculated::knight::generate_knight_moves;
-use crate::calculated::pawn::{PAWN_ATTACKS, generate_pawn_moves};
-use crate::calculated::rook::generate_rook_moves;
-use crate::calculated::zobrist::*;
+use super::zobrist::*;
+use crate::calculated::{
+    KING_MOVES, PAWN_ATTACKS, generate_bishop_moves, generate_king_moves, generate_knight_moves,
+    generate_pawn_moves, generate_rook_moves,
+};
 
 #[derive(Error, Debug)]
 #[error("poorly formatted fen string")]

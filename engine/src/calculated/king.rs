@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
-use crate::repr::constants::*;
 use crate::repr::bitboards::*;
+use crate::repr::constants::*;
 
 pub fn generate_king_moves(
     square: u8,

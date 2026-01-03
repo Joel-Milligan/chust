@@ -1,6 +1,6 @@
-use crate::repr::constants::*;
+use super::Engine;
 use crate::calculated::values::*;
-use crate::engine::Engine;
+use crate::repr::constants::*;
 
 impl Engine {
     pub fn evaluate(&self) -> i32 {

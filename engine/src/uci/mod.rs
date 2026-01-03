@@ -3,8 +3,8 @@ use std::io;
 
 use crate::calculated::values::MATE_VALUE;
 use crate::engine::{Engine, MAX_PLY};
-use crate::repr::board::Board;
-use crate::repr::piece_move::Move;
+use crate::repr::Board;
+use crate::repr::Move;
 
 mod go;
 mod position;

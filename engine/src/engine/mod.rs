@@ -1,6 +1,6 @@
-use crate::engine::transposition_table::TranspositionTable;
-use crate::repr::board::Board;
-use crate::repr::piece_move::Move;
+use crate::repr::Board;
+use crate::repr::Move;
+use transposition_table::TranspositionTable;
 
 mod evaluate;
 mod search;

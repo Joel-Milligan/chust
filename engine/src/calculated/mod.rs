@@ -1,7 +1,13 @@
-pub mod bishop;
-pub mod king;
-pub mod knight;
-pub mod pawn;
-pub mod rook;
+pub use bishop::generate_bishop_moves;
+pub use king::{KING_MOVES, generate_king_moves};
+pub use knight::generate_knight_moves;
+pub use pawn::{PAWN_ATTACKS, generate_pawn_moves};
+pub use rook::generate_rook_moves;
+
 pub mod values;
-pub mod zobrist;
+
+mod bishop;
+mod king;
+mod knight;
+mod pawn;
+mod rook;

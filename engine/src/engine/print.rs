@@ -16,7 +16,7 @@ pub fn print_info(
 
     let dist = MATE_VALUE - score.abs();
 
-    if dist <= 64 as i32 {
+    if dist <= 64_i32 {
         let dist = if score > 0 { dist } else { -dist };
         let mate = if dist > 0 { dist + 1 } else { dist } / 2;
         write!(buffer, "mate {mate} pv ").unwrap();

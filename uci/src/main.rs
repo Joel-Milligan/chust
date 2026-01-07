@@ -1,9 +1,28 @@
-use std::env;
+use chust_engine::Engine;
+use chust_uci::respond;
 
-use chust_uci::Uci;
+fn main() -> Result<(), String> {
+    let mut engine = Engine::new();
 
-fn main() -> Result<(), std::io::Error> {
-    let args = env::args().collect();
-    let mut uci = Uci::new();
-    uci.start(args)
+    loop {
+        let mut buffer = String::new();
+        std::io::stdin()
+            .read_line(&mut buffer)
+            .map_err(|e| e.to_string())?;
+        let line = buffer.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        match respond(line, &mut engine) {
+            Ok(quit) => {
+                if quit {
+                    break;
+                }
+            }
+            Err(e) => eprintln!("{e}"),
+        }
+    }
+
+    Ok(())
 }

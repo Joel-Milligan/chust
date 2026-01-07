@@ -1,24 +1,48 @@
-use crate::{Board, Engine, Move};
+use clap::{Args, Subcommand};
 
-pub fn invoke(engine: &mut Engine, tokens: &[&str]) {
-    if !tokens.is_empty() && tokens[0] == "startpos" {
-        engine.board = Board::default();
+use chust_engine::{Engine, Move};
 
-        if tokens.get(1) == Some(&"moves") {
-            let moves = tokens[2..].iter();
-            for mv in moves {
-                engine.board.make_move(&Move::coordinate(mv));
+#[derive(Args, Debug)]
+#[command(args_conflicts_with_subcommands = true)]
+pub struct PositionArgs {
+    #[command(subcommand)]
+    command: PositionCommands,
+}
+
+#[derive(Debug, Subcommand)]
+#[command(rename_all = "lower")]
+enum PositionCommands {
+    StartPos {
+        #[command(subcommand)]
+        moves: Option<MovesCommand>,
+    },
+    Fen {
+        fen: Vec<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum MovesCommand {
+    Moves {
+        #[arg(required = true)]
+        moves: Vec<String>,
+    },
+}
+
+pub fn invoke_position(engine: &mut Engine, command: PositionArgs) {
+    match command.command {
+        PositionCommands::StartPos { moves } => {
+            engine.reset(None);
+            if let Some(moves) = moves {
+                let MovesCommand::Moves { moves } = moves;
+                for mv in &moves {
+                    engine.board.make_move(&Move::coordinate(mv));
+                }
             }
         }
-    } else if tokens.len() >= 7 && tokens[0] == "fen" {
-        let fen = tokens[1..7].join(" ");
-        engine.board = Board::from_fen(&fen).unwrap();
-
-        if tokens.get(7) == Some(&"moves") {
-            let moves = tokens[8..].iter();
-            for mv in moves {
-                engine.board.make_move(&Move::coordinate(mv));
-            }
+        PositionCommands::Fen { fen } => {
+            let fen = fen.join(" ");
+            engine.reset(Some(fen));
         }
-    }
+    };
 }

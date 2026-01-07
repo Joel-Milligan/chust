@@ -39,4 +39,18 @@ impl Engine {
             pv_table: [[None; MAX_PLY]; MAX_PLY],
         }
     }
+
+    pub fn reset(&mut self, fen: Option<String>) {
+        self.board = Board::from_fen(
+            &fen.unwrap_or("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()),
+        )
+        .unwrap();
+        self.tt = TranspositionTable::new();
+        self.nodes = 0;
+        self.ply = 0;
+        self.killer_moves = ([None; MAX_PLY], [None; MAX_PLY]);
+        self.history_moves = [[0; 64]; 12];
+        self.pv_length = [0; MAX_PLY];
+        self.pv_table = [[None; MAX_PLY]; MAX_PLY];
+    }
 }

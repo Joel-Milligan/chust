@@ -1,4 +1,3 @@
-#![feature(int_roundings)]
 use chust_engine::Board;
 use chust_engine::Engine;
 
